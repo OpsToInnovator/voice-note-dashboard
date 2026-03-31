@@ -75,22 +75,42 @@ function parseVoiceNoteContent(text: string): ParsedContent {
     result.summary = summaryMatch[1].trim();
   }
 
-  // Extract Key Threads — toggles in Notion markdown
-  const threadsMatch = content.match(/## Key Threads\s*\n([\s\S]*?)(?=\n---|\n## )/);
+  // Extract Key Threads — Notion uses <details><summary> format
+  const threadsMatch = content.match(/## Key Threads[^\n]*\n([\s\S]*?)(?=\n---|\n## )/);
   if (threadsMatch) {
     const threadsBlock = threadsMatch[1];
-    // Notion toggles: <toggle summary="Title">Description</toggle>
-    const toggleRegex = /<toggle summary="([^"]*)">\s*([\s\S]*?)\s*<\/toggle>/g;
     let m;
     let idx = 0;
-    while ((m = toggleRegex.exec(threadsBlock)) !== null) {
+
+    // Primary: <details><summary>Icon Title</summary> Description </details>
+    const detailsRegex = /<details>\s*<summary>([^<]*)<\/summary>\s*([\s\S]*?)\s*<\/details>/g;
+    while ((m = detailsRegex.exec(threadsBlock)) !== null) {
+      const rawTitle = m[1].trim();
+      // Extract emoji from title if present
+      const emojiMatch = rawTitle.match(/^([\p{Emoji}\u200d]+)\s*(.*)/u);
+      const icon = emojiMatch ? emojiMatch[1] : threadIcons[idx % threadIcons.length];
+      const title = emojiMatch ? emojiMatch[2].trim() : rawTitle;
       result.keyThreads.push({
-        title: m[1].trim(),
+        title,
         description: m[2].trim(),
-        icon: threadIcons[idx % threadIcons.length],
+        icon,
       });
       idx++;
     }
+
+    // Fallback: <toggle summary="Title">Description</toggle>
+    if (result.keyThreads.length === 0) {
+      const toggleRegex = /<toggle summary="([^"]*)">\s*([\s\S]*?)\s*<\/toggle>/g;
+      while ((m = toggleRegex.exec(threadsBlock)) !== null) {
+        result.keyThreads.push({
+          title: m[1].trim(),
+          description: m[2].trim(),
+          icon: threadIcons[idx % threadIcons.length],
+        });
+        idx++;
+      }
+    }
+
     // Fallback: bullet list style
     if (result.keyThreads.length === 0) {
       const bulletRegex = /[-*]\s+\*\*([^*]+)\*\*[:\s]*(.*)/g;
@@ -103,6 +123,7 @@ function parseVoiceNoteContent(text: string): ParsedContent {
         idx++;
       }
     }
+
     // Fallback: ### headings
     if (result.keyThreads.length === 0) {
       const headingRegex = /###\s+(.+)\n([\s\S]*?)(?=\n###|\n## |$)/g;
@@ -150,15 +171,43 @@ function parseVoiceNoteContent(text: string): ParsedContent {
     }
   }
 
-  // Extract Tensions & Conflicts
-  const tensionsMatch = content.match(/## Tensions & Conflicts\s*\n([\s\S]*?)(?=\n---|\n## )/);
+  // Extract Tensions & Conflicts (heading may include {color="red"})
+  const tensionsMatch = content.match(/## Tensions & Conflicts[^\n]*\n([\s\S]*?)(?=\n---|\n## )/);
   if (tensionsMatch) {
     const block = tensionsMatch[1];
-    const bulletRegex = /[-*]\s+\*\*([^*]+)\*\*[:\s]*(.*)/g;
     let m;
-    while ((m = bulletRegex.exec(block)) !== null) {
-      result.tensions.push({ text: m[1].trim(), context: m[2].trim() });
+    
+    // Pattern 1: blockquote followed by context paragraph
+    // > ⚠️ Text here
+    // Context paragraph
+    const blockquoteContextRegex = />\s*[⚠️💡]*\s*(.+?)\n([^>\n-][^\n]*)/g;
+    while ((m = blockquoteContextRegex.exec(block)) !== null) {
+      const text = m[1].trim().replace(/^\*\*|\*\*$/g, "");
+      const context = m[2].trim();
+      if (text) {
+        result.tensions.push({ text, context });
+      }
     }
+    
+    // Fallback: just blockquotes
+    if (result.tensions.length === 0) {
+      const quoteRegex = />\s*[⚠️]*\s*(.+)/g;
+      while ((m = quoteRegex.exec(block)) !== null) {
+        const text = m[1].trim().replace(/^\*\*|\*\*$/g, "");
+        if (text) {
+          result.tensions.push({ text, context: "" });
+        }
+      }
+    }
+
+    // Fallback: bullet **bold**: context
+    if (result.tensions.length === 0) {
+      const bulletRegex = /[-*]\s+\*\*([^*]+)\*\*[:\s]*(.*)/g;
+      while ((m = bulletRegex.exec(block)) !== null) {
+        result.tensions.push({ text: m[1].trim(), context: m[2].trim() });
+      }
+    }
+
     // Fallback: plain bullets
     if (result.tensions.length === 0) {
       const simpleBullet = /[-*]\s+(.+)/g;
@@ -168,15 +217,41 @@ function parseVoiceNoteContent(text: string): ParsedContent {
     }
   }
 
-  // Extract Latent Opportunities
-  const oppsMatch = content.match(/## Latent Opportunities\s*\n([\s\S]*?)(?=\n---|\n## )/);
+  // Extract Latent Opportunities (heading may include {color="green"})
+  const oppsMatch = content.match(/## Latent Opportunities[^\n]*\n([\s\S]*?)(?=\n---|\n## )/);
   if (oppsMatch) {
     const block = oppsMatch[1];
-    const bulletRegex = /[-*]\s+\*\*([^*]+)\*\*[:\s]*(.*)/g;
     let m;
-    while ((m = bulletRegex.exec(block)) !== null) {
-      result.opportunities.push({ text: m[1].trim(), context: m[2].trim() });
+    
+    // Pattern 1: blockquote followed by context paragraph
+    const blockquoteContextRegex = />\s*[💡⚠️]*\s*(.+?)\n([^>\n-][^\n]*)/g;
+    while ((m = blockquoteContextRegex.exec(block)) !== null) {
+      const text = m[1].trim().replace(/^\*\*|\*\*$/g, "");
+      const context = m[2].trim();
+      if (text) {
+        result.opportunities.push({ text, context });
+      }
     }
+    
+    // Fallback: just blockquotes
+    if (result.opportunities.length === 0) {
+      const quoteRegex = />\s*[💡]*\s*(.+)/g;
+      while ((m = quoteRegex.exec(block)) !== null) {
+        const text = m[1].trim().replace(/^\*\*|\*\*$/g, "");
+        if (text) {
+          result.opportunities.push({ text, context: "" });
+        }
+      }
+    }
+
+    // Fallback: bullet **bold**: context
+    if (result.opportunities.length === 0) {
+      const bulletRegex = /[-*]\s+\*\*([^*]+)\*\*[:\s]*(.*)/g;
+      while ((m = bulletRegex.exec(block)) !== null) {
+        result.opportunities.push({ text: m[1].trim(), context: m[2].trim() });
+      }
+    }
+
     if (result.opportunities.length === 0) {
       const simpleBullet = /[-*]\s+(.+)/g;
       while ((m = simpleBullet.exec(block)) !== null) {
