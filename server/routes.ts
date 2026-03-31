@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects } from "./notion";
+import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup } from "./notion";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -42,6 +42,17 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Error fetching tasks:", err);
       res.status(500).json({ error: "Failed to fetch tasks", message: err.message });
+    }
+  });
+
+  // Daily standup briefing
+  app.get("/api/standup", async (_req, res) => {
+    try {
+      const standup = await getDailyStandup();
+      res.json(standup);
+    } catch (err: any) {
+      console.error("Error fetching standup:", err);
+      res.status(500).json({ error: "Failed to fetch standup data", message: err.message });
     }
   });
 

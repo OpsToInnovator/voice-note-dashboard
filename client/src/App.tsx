@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
+import Standup from "@/pages/standup";
 import NotFound from "@/pages/not-found";
 
 function AppRouter() {
@@ -14,6 +15,7 @@ function AppRouter() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/projects" component={Projects} />
+      <Route path="/standup" component={Standup} />
       <Route component={NotFound} />
     </Switch>
   );

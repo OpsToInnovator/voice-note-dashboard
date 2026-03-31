@@ -76,3 +76,21 @@ export interface ProjectHealth {
   url: string;
   tasks: ProjectTaskSummary[];
 }
+
+// --- Daily Standup ---
+
+export interface DailyStandup {
+  date: string; // "31 Mar 2026"
+  greeting: string; // "Good morning" / "Good afternoon" / "Good evening"
+  completedYesterday: { name: string; type: string; project: string }[];
+  dueToday: { name: string; type: string; project: string; priority: string }[];
+  overdue: { name: string; type: string; project: string; due: string; daysOverdue: number }[];
+  projectHealth: { healthy: number; attention: number; stalled: number; paused: number; waiting: number };
+  recentVoiceNotes: { name: string; created: string; durationSeconds: number | null }[];
+  stats: {
+    completedYesterdayCount: number;
+    dueTodayCount: number;
+    overdueCount: number;
+    activeProjects: number;
+  };
+}

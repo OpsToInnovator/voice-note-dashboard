@@ -539,6 +539,17 @@ function ProjectsSidebar({
         >
           Projects
         </Link>
+        <Link
+          href="/standup"
+          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
+            location === "/standup"
+              ? "bg-primary/10 text-primary font-medium"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          }`}
+          data-testid="nav-standup"
+        >
+          Standup
+        </Link>
       </div>
 
       {/* Health summary in sidebar */}

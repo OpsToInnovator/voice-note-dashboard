@@ -5,11 +5,12 @@ import type {
   ParsedContent,
   ProjectHealth,
   ProjectTaskSummary,
+  DailyStandup,
 } from "../shared/schema";
 // --- Notion API client ---
 // CLI fallback for sandbox environments (optional)
-let execSync: any;
-try { execSync = require("child_process").execSync; } catch {}
+import { execSync as _execSync } from "child_process";
+const execSync: any = _execSync;
 const NOTION_API = "https://api.notion.com/v1";
 const NOTION_VERSION = "2022-06-28";
 
@@ -55,9 +56,9 @@ async function notionFetch(endpoint: string, options: RequestInit = {}): Promise
 const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL = 60_000; // 60 seconds
 
-async function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
+async function cached<T>(key: string, fn: () => Promise<T>, ttl: number = CACHE_TTL): Promise<T> {
   const entry = cache.get(key);
-  if (entry && Date.now() - entry.ts < CACHE_TTL) {
+  if (entry && Date.now() - entry.ts < ttl) {
     return entry.data as T;
   }
   const data = await fn();
@@ -882,4 +883,340 @@ export async function listProjects(): Promise<ProjectHealth[]> {
 
     return projects;
   });
+}
+
+// --- Daily Standup ---
+
+const STANDUP_CACHE_TTL = 120_000; // 120 seconds
+
+function getAWSTDates() {
+  // Australia/Perth is UTC+8
+  const nowUtc = Date.now();
+  const awstOffset = 8 * 60 * 60 * 1000;
+  const awstNow = new Date(nowUtc + awstOffset);
+
+  const todayStr = awstNow.toISOString().slice(0, 10); // YYYY-MM-DD
+  const yesterday = new Date(awstNow.getTime() - 86400000);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  const hour = awstNow.getUTCHours(); // already AWST since we offset
+  let greeting = "Good morning";
+  if (hour >= 17) greeting = "Good evening";
+  else if (hour >= 12) greeting = "Good afternoon";
+
+  const dateLabel = awstNow.toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC", // already offset
+  });
+
+  return { todayStr, yesterdayStr, greeting, dateLabel, awstNow };
+}
+
+async function getDailyStandupDirect(): Promise<DailyStandup> {
+  const { todayStr, yesterdayStr, greeting, dateLabel, awstNow } = getAWSTDates();
+  const tasksDbId = formatUuid(TASKS_DB_ID);
+
+  // 1. Tasks completed yesterday
+  const completedRes = await notionFetch(`/databases/${tasksDbId}/query`, {
+    method: "POST",
+    body: JSON.stringify({
+      filter: {
+        and: [
+          { property: "Completed", date: { equals: yesterdayStr } },
+          { property: "Status", status: { equals: "Done" } },
+        ],
+      },
+      page_size: 100,
+    }),
+  });
+
+  const completedYesterday = (completedRes.results || []).map((p: any) => {
+    const props = p.properties || {};
+    // Try to get project name from relation
+    const projectIds = getRelationIds(props, "Project");
+    return {
+      name: getTitle(props, "Name"),
+      type: getSelect(props, "P/I"),
+      project: projectIds.length > 0 ? projectIds[0] : "",
+    };
+  });
+
+  // 2. Tasks due today
+  const dueTodayRes = await notionFetch(`/databases/${tasksDbId}/query`, {
+    method: "POST",
+    body: JSON.stringify({
+      filter: {
+        and: [
+          { property: "Due", date: { equals: todayStr } },
+          { property: "Status", status: { does_not_equal: "Done" } },
+        ],
+      },
+      page_size: 100,
+    }),
+  });
+
+  const dueToday = (dueTodayRes.results || []).map((p: any) => {
+    const props = p.properties || {};
+    const projectIds = getRelationIds(props, "Project");
+    return {
+      name: getTitle(props, "Name"),
+      type: getSelect(props, "P/I"),
+      project: projectIds.length > 0 ? projectIds[0] : "",
+      priority: getStatus(props, "Priority"),
+    };
+  });
+
+  // 3. Overdue tasks
+  const overdueRes = await notionFetch(`/databases/${tasksDbId}/query`, {
+    method: "POST",
+    body: JSON.stringify({
+      filter: {
+        and: [
+          { property: "Due", date: { before: todayStr } },
+          { property: "Status", status: { does_not_equal: "Done" } },
+        ],
+      },
+      page_size: 100,
+    }),
+  });
+
+  const overdue = (overdueRes.results || []).map((p: any) => {
+    const props = p.properties || {};
+    const projectIds = getRelationIds(props, "Project");
+    const dueDate = getDate(props, "Due") || "";
+    const daysOverdue = dueDate
+      ? Math.floor((new Date(todayStr).getTime() - new Date(dueDate).getTime()) / 86400000)
+      : 0;
+    return {
+      name: getTitle(props, "Name"),
+      type: getSelect(props, "P/I"),
+      project: projectIds.length > 0 ? projectIds[0] : "",
+      due: dueDate,
+      daysOverdue,
+    };
+  }).sort((a: any, b: any) => b.daysOverdue - a.daysOverdue);
+
+  // 4. Project health summary
+  const projects = await listProjects();
+  const projectHealth = {
+    healthy: projects.filter((p) => p.health === "healthy").length,
+    attention: projects.filter((p) => p.health === "attention").length,
+    stalled: projects.filter((p) => p.health === "stalled").length,
+    paused: projects.filter((p) => p.health === "paused").length,
+    waiting: projects.filter((p) => p.health === "waiting").length,
+  };
+
+  // 5. Recent voice notes (last 24 hours)
+  const allNotes = await listVoiceNotes();
+  const oneDayAgo = new Date(awstNow.getTime() - 86400000);
+  const recentVoiceNotes = allNotes
+    .filter((n) => {
+      if (!n.created) return false;
+      return new Date(n.created) >= oneDayAgo;
+    })
+    .map((n) => ({
+      name: n.name,
+      created: n.created,
+      durationSeconds: n.durationSeconds,
+    }));
+
+  return {
+    date: dateLabel,
+    greeting,
+    completedYesterday,
+    dueToday,
+    overdue,
+    projectHealth,
+    recentVoiceNotes,
+    stats: {
+      completedYesterdayCount: completedYesterday.length,
+      dueTodayCount: dueToday.length,
+      overdueCount: overdue.length,
+      activeProjects: projects.length,
+    },
+  };
+}
+
+function getDailyStandupCli(): DailyStandup {
+  const { todayStr, yesterdayStr, greeting, dateLabel, awstNow } = getAWSTDates();
+
+  // Fetch tasks from both active and complete views
+  const views = [
+    { id: TASKS_ACTIVE_VIEW_ID, label: "active" },
+    { id: TASKS_COMPLETE_VIEW_ID, label: "complete" },
+  ];
+
+  let allTasks: any[] = [];
+  for (const view of views) {
+    try {
+      const viewUrl = `https://www.notion.so/${TASKS_DB_ID}?v=${view.id}`;
+      const result = callNotionCli("notion-query-database-view", { view_url: viewUrl });
+      allTasks = allTasks.concat(result.results || []);
+    } catch (err) {
+      console.error(`Failed to fetch tasks view ${view.id}:`, err);
+    }
+  }
+
+  // 1. Completed yesterday
+  const completedYesterday = allTasks
+    .filter((t) => {
+      const completedDate = t["date:Completed:start"] || "";
+      const status = t.Status || "";
+      return completedDate === yesterdayStr && status === "Done";
+    })
+    .map((t) => {
+      let project = "";
+      try {
+        const projRaw = t.Project || "";
+        if (projRaw && projRaw !== "<omitted />") {
+          const parsed = JSON.parse(projRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            project = extractIdFromUrl(parsed[0]);
+          }
+        }
+      } catch {}
+      return {
+        name: t.Name || "",
+        type: t["P/I"] || "",
+        project,
+      };
+    });
+
+  // 2. Due today
+  const dueToday = allTasks
+    .filter((t) => {
+      const dueDate = t["date:Due:start"] || "";
+      const status = t.Status || "";
+      return dueDate === todayStr && status !== "Done";
+    })
+    .map((t) => {
+      let project = "";
+      try {
+        const projRaw = t.Project || "";
+        if (projRaw && projRaw !== "<omitted />") {
+          const parsed = JSON.parse(projRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            project = extractIdFromUrl(parsed[0]);
+          }
+        }
+      } catch {}
+      return {
+        name: t.Name || "",
+        type: t["P/I"] || "",
+        project,
+        priority: t.Priority || "",
+      };
+    });
+
+  // 3. Overdue
+  const overdue = allTasks
+    .filter((t) => {
+      const dueDate = t["date:Due:start"] || "";
+      const status = t.Status || "";
+      return dueDate && dueDate < todayStr && status !== "Done";
+    })
+    .map((t) => {
+      const dueDate = t["date:Due:start"] || "";
+      const daysOverdue = Math.floor(
+        (new Date(todayStr).getTime() - new Date(dueDate).getTime()) / 86400000
+      );
+      let project = "";
+      try {
+        const projRaw = t.Project || "";
+        if (projRaw && projRaw !== "<omitted />") {
+          const parsed = JSON.parse(projRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            project = extractIdFromUrl(parsed[0]);
+          }
+        }
+      } catch {}
+      return {
+        name: t.Name || "",
+        type: t["P/I"] || "",
+        project,
+        due: dueDate,
+        daysOverdue,
+      };
+    })
+    .sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+  // 4. Project health (reuse listProjects sync-ish — it's cached)
+  // We need to call it synchronously from the CLI path context,
+  // but listProjects is async. We'll set defaults and let the route handler fill this.
+  // Actually, for CLI path we can compute from the cached projects view
+  const projectHealth = { healthy: 0, attention: 0, stalled: 0, paused: 0, waiting: 0 };
+
+  // 5. Recent voice notes — will be filled by the route handler using listVoiceNotes()
+  const recentVoiceNotes: DailyStandup["recentVoiceNotes"] = [];
+
+  return {
+    date: dateLabel,
+    greeting,
+    completedYesterday,
+    dueToday,
+    overdue,
+    projectHealth,
+    recentVoiceNotes,
+    stats: {
+      completedYesterdayCount: completedYesterday.length,
+      dueTodayCount: dueToday.length,
+      overdueCount: overdue.length,
+      activeProjects: 0,
+    },
+  };
+}
+
+export async function getDailyStandup(): Promise<DailyStandup> {
+  return cached("daily-standup", async () => {
+    const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+
+    if (hasApiKey) {
+      return getDailyStandupDirect();
+    }
+
+    // CLI path: get task data synchronously, then augment with async project + voice note data
+    const standup = getDailyStandupCli();
+
+    // Augment with project health (async) and voice notes via CLI
+    const { awstNow } = getAWSTDates();
+    const projects = await listProjects();
+
+    standup.projectHealth = {
+      healthy: projects.filter((p) => p.health === "healthy").length,
+      attention: projects.filter((p) => p.health === "attention").length,
+      stalled: projects.filter((p) => p.health === "stalled").length,
+      paused: projects.filter((p) => p.health === "paused").length,
+      waiting: projects.filter((p) => p.health === "waiting").length,
+    };
+    standup.stats.activeProjects = projects.length;
+
+    // Voice notes via CLI (listVoiceNotes uses direct API only)
+    try {
+      const notesDbId = "592d777bf7438256ad348129ae94a20d";
+      const notesViewUrl = `https://www.notion.so/${notesDbId}`;
+      const notesResult = callNotionCli("notion-query-database-view", { view_url: notesViewUrl });
+      const rawNotes = notesResult.results || [];
+      const oneDayAgo = new Date(awstNow.getTime() - 86400000);
+      standup.recentVoiceNotes = rawNotes
+        .filter((n: any) => {
+          const type = n.Type || "";
+          if (type !== "Voice Note") return false;
+          const created = n.Created || "";
+          if (!created) return false;
+          return new Date(created) >= oneDayAgo;
+        })
+        .map((n: any) => ({
+          name: n.Name || "",
+          created: n.Created || "",
+          durationSeconds: n["Duration (Seconds)"] ? Number(n["Duration (Seconds)"]) : null,
+        }));
+    } catch (err) {
+      console.error("Failed to fetch voice notes for standup:", err);
+      standup.recentVoiceNotes = [];
+    }
+
+    return standup;
+  }, STANDUP_CACHE_TTL);
 }
