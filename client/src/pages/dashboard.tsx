@@ -112,7 +112,7 @@ function VoiceNoteSidebar({
               Voice Notes
             </h1>
             <p className="text-[11px] text-muted-foreground">
-              {notes.length} notes
+              {isLoading ? "Loading…" : `${notes.length} notes`}
             </p>
           </div>
         </div>
