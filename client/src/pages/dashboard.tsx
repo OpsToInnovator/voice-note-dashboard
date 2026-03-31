@@ -19,6 +19,7 @@ import {
   ChevronUp,
   FileText,
 } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -82,6 +83,37 @@ function useChartColors() {
       };
 }
 
+// --- Nav Tabs ---
+function NavTabs() {
+  const [location] = useLocation();
+  return (
+    <div className="px-3 py-2 border-b border-sidebar-border flex gap-1">
+      <Link
+        href="/"
+        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
+          location === "/"
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        }`}
+        data-testid="nav-voice-notes"
+      >
+        Voice Notes
+      </Link>
+      <Link
+        href="/projects"
+        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
+          location === "/projects"
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        }`}
+        data-testid="nav-projects"
+      >
+        Projects
+      </Link>
+    </div>
+  );
+}
+
 // --- Sidebar ---
 function VoiceNoteSidebar({
   notes,
@@ -125,6 +157,9 @@ function VoiceNoteSidebar({
           {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
         </button>
       </div>
+
+      {/* Nav tabs */}
+      <NavTabs />
 
       {/* Sidebar List */}
       <ScrollArea className="flex-1 custom-scrollbar">

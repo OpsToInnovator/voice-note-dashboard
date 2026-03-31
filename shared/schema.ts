@@ -49,3 +49,30 @@ export interface VoiceNoteDetail {
   content: ParsedContent;
   tasks: TaskItem[];
 }
+
+// --- Project Health Monitor ---
+
+export interface ProjectTaskSummary {
+  name: string;
+  status: string;
+  type: string;
+  due: string | null;
+}
+
+export interface ProjectHealth {
+  id: string;
+  name: string;
+  status: string; // Planned, On Hold, Doing, Ongoing, Done
+  health: 'healthy' | 'attention' | 'stalled' | 'paused' | 'waiting';
+  taskCount: number;
+  tasksDone: number;
+  tasksOverdue: number;
+  completionRate: number;
+  daysSinceActivity: number;
+  targetDeadline: string | null;
+  daysUntilDeadline: number | null;
+  noteCount: number;
+  tag: string;
+  url: string;
+  tasks: ProjectTaskSummary[];
+}

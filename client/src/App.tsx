@@ -6,12 +6,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
 import Dashboard from "@/pages/dashboard";
+import Projects from "@/pages/projects";
 import NotFound from "@/pages/not-found";
 
 function AppRouter() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/projects" component={Projects} />
       <Route component={NotFound} />
     </Switch>
   );
