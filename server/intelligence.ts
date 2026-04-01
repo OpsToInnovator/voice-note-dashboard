@@ -77,6 +77,16 @@ Based on ALL of this data, provide:
 
 5. WEEKLY PRIORITY: Looking at his goals and project health, what should be his #1 priority this week beyond today?
 
+6. SYSTEM AUDIT: Act as a strategic advisor auditing the structural integrity of Jake's second brain. For EACH project and goal, evaluate honestly:
+   - Is this actually a project (defined outcome, concrete tasks, timeline)? Or is it an idea/aspiration disguised as a project?
+   - Should any projects be demoted to goals (aspirational, no concrete next steps)?
+   - Should any be demoted to just a note or archived (stale, no tasks, no momentum)?
+   - Should any projects be merged (overlapping scope, same theme)?
+   - Are any goals disconnected from projects (no linked projects = no path to achievement)?
+   - Are there tasks floating without a project that should be grouped?
+   Be direct and honest. Jake wants accountability, not validation. If something isn't a real project, say so.
+   Provide a summary observation and then specific items with recommendations.
+
 Respond ONLY with a JSON object, no markdown, no code blocks:
 {
   "primaryFocus": { "title": "...", "reasoning": "...", "connectedGoal": "..." },
@@ -84,12 +94,18 @@ Respond ONLY with a JSON object, no markdown, no code blocks:
   "riskFlag": { "item": "...", "reason": "...", "suggestedAction": "..." },
   "momentumWin": { "achievement": "...", "leverage": "..." },
   "weeklyPriority": { "focus": "...", "reasoning": "..." },
+  "systemAudit": {
+    "summary": "One paragraph honest assessment of the structural health of Jake's system",
+    "items": [
+      { "name": "Project or Goal name", "currentType": "Project", "recommendation": "keep|demote_to_goal|demote_to_note|merge|archive", "reasoning": "Why", "actionRequired": "Specific action to take" }
+    ]
+  },
   "summary": "One sentence summary of the overall recommendation"
 }`;
 
   const response = await client.chat.completions.create({
     model: "gpt-4o",
-    max_tokens: 2048,
+    max_tokens: 4096,
     messages: [{ role: "user", content: prompt }],
     response_format: { type: "json_object" },
   });
@@ -118,6 +134,7 @@ Respond ONLY with a JSON object, no markdown, no code blocks:
       riskFlag: { item: "Analysis unavailable", reason: "", suggestedAction: "" },
       momentumWin: { achievement: "Analysis unavailable", leverage: "" },
       weeklyPriority: { focus: "Analysis unavailable", reasoning: "" },
+      systemAudit: { summary: "Analysis unavailable", items: [] },
       summary: "Intelligence analysis encountered an error. Please try refreshing.",
     };
   }
@@ -128,6 +145,7 @@ Respond ONLY with a JSON object, no markdown, no code blocks:
     riskFlag: parsed.riskFlag || { item: "", reason: "", suggestedAction: "" },
     momentumWin: parsed.momentumWin || { achievement: "", leverage: "" },
     weeklyPriority: parsed.weeklyPriority || { focus: "", reasoning: "" },
+    systemAudit: parsed.systemAudit || { summary: "", items: [] },
     summary: parsed.summary || "",
     generatedAt: new Date().toISOString(),
   };

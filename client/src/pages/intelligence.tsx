@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/lib/theme";
-import type { IntelligenceReport, ClassifiedTask } from "@shared/schema";
+import type { IntelligenceReport, ClassifiedTask, SystemAuditItem } from "@shared/schema";
 import {
   Sun,
   Moon,
@@ -18,6 +18,12 @@ import {
   ListChecks,
   CheckCircle2,
   Loader2,
+  Shield,
+  Archive,
+  ArrowDownToLine,
+  Merge,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -278,6 +284,116 @@ function WeeklyPriorityCard({ data }: { data: IntelligenceReport["weeklyPriority
   );
 }
 
+// --- System Audit Section ---
+const auditIcons: Record<string, typeof Shield> = {
+  keep: CheckCircle2,
+  demote_to_goal: ArrowDownToLine,
+  demote_to_note: ArrowDownToLine,
+  merge: Merge,
+  archive: Archive,
+};
+
+const auditColors: Record<string, string> = {
+  keep: "text-chart-2",
+  demote_to_goal: "text-chart-3",
+  demote_to_note: "text-muted-foreground",
+  merge: "text-primary",
+  archive: "text-muted-foreground",
+};
+
+const auditLabels: Record<string, string> = {
+  keep: "Keep as Project",
+  demote_to_goal: "Move to Goals",
+  demote_to_note: "Move to Notes",
+  merge: "Merge",
+  archive: "Archive",
+};
+
+function SystemAuditSection({ audit }: { audit: { summary: string; items: SystemAuditItem[] } }) {
+  const [expanded, setExpanded] = useState(false);
+  
+  const actionItems = audit.items.filter(i => i.recommendation !== 'keep');
+  const keepItems = audit.items.filter(i => i.recommendation === 'keep');
+
+  return (
+    <div className="bg-card border border-card-border rounded-xl overflow-hidden animate-fade-in delay-6" data-testid="system-audit">
+      <div className="px-5 py-4 border-b border-card-border">
+        <div className="flex items-center gap-2 mb-2">
+          <Shield className="w-4 h-4 text-primary" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">System Audit</span>
+          <span className="text-[10px] text-muted-foreground ml-auto">
+            {actionItems.length} action{actionItems.length !== 1 ? 's' : ''} recommended
+          </span>
+        </div>
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
+          {audit.summary}
+        </p>
+      </div>
+
+      {/* Action items first — things that need changing */}
+      {actionItems.length > 0 && (
+        <div className="divide-y divide-card-border">
+          {actionItems.map((item, i) => {
+            const Icon = auditIcons[item.recommendation] || AlertTriangle;
+            const colorClass = auditColors[item.recommendation] || "text-muted-foreground";
+            const label = auditLabels[item.recommendation] || item.recommendation;
+            return (
+              <div key={i} className="px-5 py-3 hover:bg-muted/30 transition-colors">
+                <div className="flex items-start gap-3">
+                  <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${colorClass}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-display text-sm font-semibold">{item.name}</span>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${colorClass} bg-muted`}>
+                        {label}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        Currently: {item.currentType}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
+                      {item.reasoning}
+                    </p>
+                    {item.actionRequired && (
+                      <p className="text-[12px] text-foreground mt-1">
+                        <span className="font-medium">Action:</span> {item.actionRequired}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Healthy items — collapsible */}
+      {keepItems.length > 0 && (
+        <div className="border-t border-card-border">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full px-5 py-2.5 flex items-center justify-between text-[12px] text-muted-foreground hover:bg-muted/30 transition-colors"
+          >
+            <span>{keepItems.length} project{keepItems.length !== 1 ? 's' : ''} confirmed as valid</span>
+            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+          {expanded && (
+            <div className="divide-y divide-card-border">
+              {keepItems.map((item, i) => (
+                <div key={i} className="px-5 py-2.5 flex items-center gap-3">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-chart-2 flex-shrink-0" />
+                  <span className="text-[12px] font-medium">{item.name}</span>
+                  <span className="text-[10px] text-muted-foreground ml-auto">{item.reasoning}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Task Classifier Section ---
 function TaskClassifierSection() {
   const [results, setResults] = useState<ClassifiedTask[]>([]);
@@ -463,6 +579,11 @@ export default function Intelligence() {
           <MomentumWinCard data={data.momentumWin} />
           <WeeklyPriorityCard data={data.weeklyPriority} />
         </div>
+
+        {/* System Audit */}
+        {data.systemAudit && data.systemAudit.items && data.systemAudit.items.length > 0 && (
+          <SystemAuditSection audit={data.systemAudit} />
+        )}
 
         {/* Task Classifier */}
         <TaskClassifierSection />

@@ -107,12 +107,24 @@ export interface IntelligenceContext {
   completedYesterdayCount: number;
 }
 
+export interface SystemAuditItem {
+  name: string;
+  currentType: string; // "Project" | "Goal"
+  recommendation: 'keep' | 'demote_to_goal' | 'demote_to_note' | 'merge' | 'archive';
+  reasoning: string;
+  actionRequired: string;
+}
+
 export interface IntelligenceReport {
   primaryFocus: { title: string; reasoning: string; connectedGoal: string };
   patternInsight: { observation: string; evidence: string[] };
   riskFlag: { item: string; reason: string; suggestedAction: string };
   momentumWin: { achievement: string; leverage: string };
   weeklyPriority: { focus: string; reasoning: string };
+  systemAudit: {
+    summary: string;
+    items: SystemAuditItem[];
+  };
   summary: string;
   generatedAt: string;
 }
