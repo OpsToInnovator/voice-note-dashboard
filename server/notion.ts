@@ -1743,3 +1743,81 @@ export async function updateNoteTitle(pageId: string, newTitle: string): Promise
     });
   }
 }
+
+// --- Get recently completed tasks (last 7 days) ---
+export async function getRecentlyCompletedTasks(): Promise<{ name: string; type: string; project: string; completedDate: string }[]> {
+  const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0];
+  const results: { name: string; type: string; project: string; completedDate: string }[] = [];
+
+  if (hasApiKey) {
+    const dbId = formatUuid(TASKS_DB_ID);
+    const response = await notionFetch(`/databases/${dbId}/query`, {
+      method: "POST",
+      body: JSON.stringify({
+        filter: {
+          and: [
+            { property: "Status", status: { equals: "Done" } },
+            { property: "Completed", date: { on_or_after: sevenDaysAgoStr } },
+          ]
+        },
+        sorts: [{ property: "Completed", direction: "descending" }],
+        page_size: 100,
+      }),
+    });
+
+    // Build project lookup for names
+    const projLookup = await getProjectLookup();
+    const projIdToName = new Map<string, string>();
+    for (const [name, info] of Object.entries(projLookup)) {
+      projIdToName.set((info as any).id, name);
+    }
+
+    for (const page of response.results || []) {
+      const props = page.properties || {};
+      const name = getTitle(props, "Name");
+      const type = getSelect(props, "P/I");
+      const completedDate = getDate(props, "Completed") || "";
+      const projectIds = getRelationIds(props, "Project");
+      const projectName = projectIds.length > 0 ? (projIdToName.get(projectIds[0]) || "") : "";
+      results.push({ name, type, project: projectName, completedDate });
+    }
+  } else {
+    // CLI path — query both active and complete task views
+    try {
+      const viewUrl = `https://www.notion.so/${TASKS_DB_ID}?v=${TASKS_COMPLETE_VIEW_ID}`;
+      const taskResult = callNotionCli("notion-query-database-view", { view_url: viewUrl });
+      const projLookup = await getProjectLookup();
+
+      for (const t of taskResult.results || []) {
+        if (t.Status !== "Done") continue;
+        const completed = t["date:Completed:start"] || "";
+        if (completed && completed >= sevenDaysAgoStr) {
+          let projectName = "";
+          try {
+            const projRaw = t.Project || "";
+            const projUrls = projRaw ? JSON.parse(projRaw) : [];
+            if (Array.isArray(projUrls) && projUrls.length > 0) {
+              const projId = extractPageId(projUrls[0]);
+              for (const [name, info] of Object.entries(projLookup)) {
+                if ((info as any).id === projId) { projectName = name; break; }
+              }
+            }
+          } catch {}
+          results.push({
+            name: t.Name || "",
+            type: t["P/I"] || "",
+            project: projectName,
+            completedDate: completed,
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to get completed tasks:", err);
+    }
+  }
+
+  return results;
+}

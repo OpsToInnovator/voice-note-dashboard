@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/lib/theme";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import type { DailyStandup, ProcessingResult } from "@shared/schema";
+import type { DailyStandup, ProcessingResult, ProofPanel } from "@shared/schema";
 import {
   Sun,
   Moon,
@@ -22,6 +22,9 @@ import {
   FileText,
   Zap,
   ArrowRight,
+  Trophy,
+  TrendingUp,
+  Compass,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -448,7 +451,136 @@ function PriorityBadgeSmall({ priority }: { priority: string }) {
   );
 }
 
-// --- Voice Note Task Extractor ---
+// --- Proof Panel Section ---
+const identityColors: Record<string, string> = {
+  Builder: "text-primary",
+  Communicator: "text-chart-3",
+  Leader: "text-chart-5",
+  Learner: "text-chart-4",
+  Craftsman: "text-chart-1",
+  Organiser: "text-muted-foreground",
+};
+
+const identityBgColors: Record<string, string> = {
+  Builder: "bg-primary/10",
+  Communicator: "bg-chart-3/10",
+  Leader: "bg-chart-5/10",
+  Learner: "bg-chart-4/10",
+  Craftsman: "bg-chart-1/10",
+  Organiser: "bg-muted",
+};
+
+function ProofPanelSection() {
+  const { data, isLoading, error } = useQuery<ProofPanel>({
+    queryKey: ["/api/proof"],
+    staleTime: 1800000,
+  });
+
+  const [showTasks, setShowTasks] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="bg-card border border-card-border rounded-xl p-5 animate-fade-in delay-6">
+        <Skeleton className="h-5 w-40 mb-3" />
+        <Skeleton className="h-16 w-full mb-2" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    );
+  }
+
+  if (error || !data || data.totalWins === 0) return null;
+
+  return (
+    <div className="bg-card border border-card-border rounded-xl overflow-hidden animate-fade-in delay-6">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-card-border">
+        <div className="flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-chart-2" />
+          <span className="font-display text-sm font-semibold">Proof</span>
+          <span className="text-[11px] text-muted-foreground">
+            {data.totalWins} wins · {data.period}
+          </span>
+        </div>
+      </div>
+
+      {/* Identity Domain Rollup */}
+      <div className="px-5 py-4 border-b border-card-border">
+        <div className="flex items-center gap-2 mb-3">
+          <Compass className="w-3.5 h-3.5 text-chart-3" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-chart-3">Identity reinforced</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {data.winsByIdentity.map((id) => (
+            <div
+              key={id.domain}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${identityBgColors[id.domain] || "bg-muted"}`}
+            >
+              <span className={`text-[13px] font-semibold ${identityColors[id.domain] || "text-muted-foreground"}`}>
+                {id.domain}
+              </span>
+              <span className="text-[11px] text-muted-foreground">
+                {id.count}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Pattern Signal */}
+      {data.patternSignal && (
+        <div className="px-5 py-4 border-b border-card-border">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">Pattern</span>
+          </div>
+          <p className="text-[13px] leading-relaxed">{data.patternSignal}</p>
+        </div>
+      )}
+
+      {/* Wins by Project */}
+      {data.winsByProject.length > 0 && (
+        <div className="px-5 py-3 border-b border-card-border">
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {data.winsByProject.map((p) => (
+              <span key={p.project} className="text-[12px] text-muted-foreground">
+                {p.project}: <span className="font-semibold text-foreground">{p.count}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expandable task detail */}
+      <button
+        onClick={() => setShowTasks(!showTasks)}
+        className="w-full px-5 py-2.5 flex items-center justify-between text-[12px] text-muted-foreground hover:bg-muted/30 transition-colors"
+      >
+        <span>{showTasks ? "Hide" : "Show"} task details</span>
+        {showTasks ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+      </button>
+
+      {showTasks && (
+        <div className="divide-y divide-card-border">
+          {data.tasks.map((task, i) => (
+            <div key={i} className="px-5 py-3">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2 className="w-3 h-3 text-chart-2 flex-shrink-0" />
+                <span className="text-[13px] font-medium">{task.name}</span>
+                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${identityColors[task.identityDomain] || "text-muted-foreground"} ${identityBgColors[task.identityDomain] || "bg-muted"}`}>
+                  {task.identityDomain}
+                </span>
+              </div>
+              {task.whatItMoved && (
+                <p className="text-[11px] text-muted-foreground ml-5">{task.whatItMoved}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function VoiceNoteProcessorSection() {
   const [result, setResult] = useState<ProcessingResult | null>(null);
 
@@ -751,6 +883,9 @@ export default function Standup() {
 
           {/* Recent Voice Notes */}
           <RecentVoiceNotesSection notes={data.recentVoiceNotes} />
+
+          {/* Proof Panel */}
+          <ProofPanelSection />
 
           {/* Voice Note Task Extractor */}
           <VoiceNoteProcessorSection />

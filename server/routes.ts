@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup, gatherIntelligenceContext, classifyUnclassifiedTasks } from "./notion";
-import { generateIntelligence, autoTitleNotes, processVoiceNotes, getUnprocessedVoiceNoteCount } from "./intelligence";
+import { generateIntelligence, autoTitleNotes, processVoiceNotes, getUnprocessedVoiceNoteCount, generateProofPanel } from "./intelligence";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -121,6 +121,17 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Error processing voice notes:", err);
       res.status(500).json({ error: "Failed to process voice notes", message: err.message });
+    }
+  });
+
+  // Proof Panel — evidence of progress
+  app.get("/api/proof", async (_req, res) => {
+    try {
+      const proof = await generateProofPanel();
+      res.json(proof);
+    } catch (err: any) {
+      console.error("Error generating proof panel:", err);
+      res.status(500).json({ error: "Failed to generate proof panel", message: err.message });
     }
   });
 

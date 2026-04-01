@@ -597,9 +597,13 @@ function NoteTitlerSection() {
 export default function Intelligence() {
   const { data, isLoading, error, refetch, isFetching } = useQuery<IntelligenceReport>({
     queryKey: ["/api/intelligence"],
-    staleTime: 1800000, // 30 min
+    staleTime: Infinity, // Manual refresh only
+    enabled: false, // Don't auto-fetch on page load
     retry: 1,
   });
+
+  // Show a "Run Analysis" prompt if no cached data
+  const hasData = !!data;
 
   if (isLoading) return <IntelligenceSkeleton />;
 
@@ -624,6 +628,39 @@ export default function Intelligence() {
     );
   }
 
+  if (!hasData && !isFetching) {
+    return (
+      <div className="h-screen bg-background overflow-y-auto custom-scrollbar">
+        <div className="max-w-[900px] mx-auto px-6 py-8">
+          <IntelligenceNav />
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto mb-4">
+              <Brain className="w-7 h-7 text-primary" />
+            </div>
+            <h2 className="font-display text-lg font-semibold mb-2">Weekly Intelligence Review</h2>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-6 leading-relaxed">
+              Run this once a week to get a full analysis of your goals, projects, patterns, and system health. Uses your OpenAI API.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="text-sm font-medium px-5 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Run Analysis
+            </button>
+          </div>
+
+          {/* Tools still available without running analysis */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+            <TaskClassifierSection />
+            <NoteTitlerSection />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isFetching && !data) return <IntelligenceSkeleton />;
   if (!data) return <IntelligenceSkeleton />;
 
   return (

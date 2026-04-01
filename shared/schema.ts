@@ -135,6 +135,25 @@ export interface ClassifiedTask {
   classification: string;
 }
 
+export interface ProofTask {
+  name: string;
+  type: string;
+  project: string;
+  completedDate: string;
+  identityDomain: string; // e.g., "Builder", "Communicator", "Leader", "Learner", "Craftsman"
+  whatItMoved: string; // What this task advanced
+  identityReinforced: string; // What identity it reinforces
+}
+
+export interface ProofPanel {
+  period: string;
+  totalWins: number;
+  winsByProject: { project: string; count: number }[];
+  winsByIdentity: { domain: string; count: number; tasks: string[] }[];
+  patternSignal: string; // Is this pattern repeating? What does the week say?
+  tasks: ProofTask[];
+}
+
 export interface TitledNote {
   id: string;
   oldTitle: string;

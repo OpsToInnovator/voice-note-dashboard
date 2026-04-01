@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { IntelligenceContext, IntelligenceReport, TitledNote, ProcessedVoiceNote, ProcessingResult } from "../shared/schema";
+import type { IntelligenceContext, IntelligenceReport, TitledNote, ProcessedVoiceNote, ProcessingResult, ProofPanel } from "../shared/schema";
 import { findUntitledNotes, updateNoteTitle, getUnprocessedVoiceNotes, getVoiceNoteContent, getProjectLookup, createTaskInNotion } from "./notion";
 
 const client = new OpenAI();
@@ -340,4 +340,144 @@ export async function autoTitleNotes(): Promise<TitledNote[]> {
   }
 
   return results;
+}
+
+// --- Proof Panel with Identity Domains ---
+import { getRecentlyCompletedTasks } from "./notion";
+import type { ProofTask } from "../shared/schema";
+
+let cachedProof: { data: ProofPanel; ts: number } | null = null;
+const PROOF_CACHE_TTL = 1_800_000; // 30 min
+
+// Identity domains that map to patterns of behaviour
+const IDENTITY_DOMAINS = [
+  "Builder",      // Creating systems, tools, structures
+  "Communicator", // Emails, meetings, conversations, outreach
+  "Leader",       // Delegation, decision-making, stakeholder work
+  "Learner",      // Research, study, skill development, reflection
+  "Craftsman",    // Hands-on work, design, technical execution
+  "Organiser",    // Planning, processing, filing, maintaining systems
+];
+
+export async function generateProofPanel(): Promise<ProofPanel> {
+  if (cachedProof && Date.now() - cachedProof.ts < PROOF_CACHE_TTL) {
+    return cachedProof.data;
+  }
+
+  const completedTasks = await getRecentlyCompletedTasks();
+
+  if (completedTasks.length === 0) {
+    const empty: ProofPanel = {
+      period: "Last 7 Days",
+      totalWins: 0,
+      winsByProject: [],
+      winsByIdentity: [],
+      patternSignal: "",
+      tasks: [],
+    };
+    cachedProof = { data: empty, ts: Date.now() };
+    return empty;
+  }
+
+  const taskList = completedTasks
+    .map(t => `- ${t.name} (${t.type || "unclassified"}, project: ${t.project || "none"})`)
+    .join("\n");
+
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
+    max_tokens: 2048,
+    messages: [
+      {
+        role: "system",
+        content: `You analyse completed tasks to build proof of identity. Each task is evidence of who the person is becoming. Be specific, grounded, and psychologically honest.
+
+IDENTITY DOMAINS (assign exactly one per task):
+- Builder: Creating systems, tools, structures, apps, frameworks
+- Communicator: Emails, meetings, conversations, outreach, relationships
+- Leader: Delegation, decision-making, stakeholder management, influence
+- Learner: Research, study, skill development, reflection, self-improvement
+- Craftsman: Hands-on work, design, technical execution, physical creation
+- Organiser: Planning, processing, filing, maintaining systems, GTD work`,
+      },
+      {
+        role: "user",
+        content: `Here are tasks completed in the last 7 days:
+
+${taskList}
+
+For EACH task, provide:
+1. identityDomain — which identity domain this task reinforces (one of: Builder, Communicator, Leader, Learner, Craftsman, Organiser)
+2. whatItMoved — one sentence: what did completing this advance?
+3. identityReinforced — one sentence: what does doing this say about who I am?
+
+Then provide ONE overall patternSignal — looking at ALL the tasks together, is there a repeating pattern? What identity is being most reinforced this week? Is the pattern healthy or scattered? Be honest.
+
+Respond ONLY with JSON:
+{
+  "tasks": [
+    { "name": "task name", "identityDomain": "Builder", "whatItMoved": "...", "identityReinforced": "..." }
+  ],
+  "patternSignal": "2-3 sentences about the overall pattern"
+}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  const rawText = response.choices?.[0]?.message?.content || "";
+  let parsed: any;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    parsed = { tasks: [], patternSignal: "Unable to analyse. Review completed tasks manually." };
+  }
+
+  // Merge LLM analysis with raw task data
+  const proofTasks: ProofTask[] = completedTasks.map((t, i) => {
+    const llmTask = (parsed.tasks || [])[i] || {};
+    return {
+      name: t.name,
+      type: t.type,
+      project: t.project,
+      completedDate: t.completedDate,
+      identityDomain: llmTask.identityDomain || "Organiser",
+      whatItMoved: llmTask.whatItMoved || "",
+      identityReinforced: llmTask.identityReinforced || "",
+    };
+  });
+
+  // Roll up by project
+  const projMap = new Map<string, number>();
+  for (const t of proofTasks) {
+    const p = t.project || "Unassigned";
+    projMap.set(p, (projMap.get(p) || 0) + 1);
+  }
+  const winsByProject = Array.from(projMap.entries())
+    .map(([project, count]) => ({ project, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Roll up by identity domain
+  const idMap = new Map<string, { count: number; tasks: string[] }>();
+  for (const t of proofTasks) {
+    const d = t.identityDomain;
+    const existing = idMap.get(d) || { count: 0, tasks: [] };
+    existing.count++;
+    existing.tasks.push(t.name);
+    idMap.set(d, existing);
+  }
+  const winsByIdentity = Array.from(idMap.entries())
+    .map(([domain, data]) => ({ domain, count: data.count, tasks: data.tasks }))
+    .sort((a, b) => b.count - a.count);
+
+  const proof: ProofPanel = {
+    period: "Last 7 Days",
+    totalWins: proofTasks.length,
+    winsByProject,
+    winsByIdentity,
+    patternSignal: parsed.patternSignal || "",
+    tasks: proofTasks,
+  };
+
+  cachedProof = { data: proof, ts: Date.now() };
+  return proof;
 }
