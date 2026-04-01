@@ -134,3 +134,10 @@ export interface ClassifiedTask {
   name: string;
   classification: string;
 }
+
+export interface TitledNote {
+  id: string;
+  oldTitle: string;
+  newTitle: string;
+  contentPreview: string;
+}

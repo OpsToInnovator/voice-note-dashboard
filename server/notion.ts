@@ -1500,3 +1500,87 @@ export async function classifyUnclassifiedTasks(): Promise<ClassifiedTask[]> {
 
   return classified;
 }
+
+// --- Find untitled/generic notes and get their content ---
+const GENERIC_TITLES = ["untitled", "new note", "note", "", "new page"];
+
+export async function findUntitledNotes(): Promise<{ id: string; title: string; content: string }[]> {
+  const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+  const results: { id: string; title: string; content: string }[] = [];
+
+  if (hasApiKey) {
+    const NOTES_DB = "592d777bf7438256ad348129ae94a20d";
+    const dbId = formatUuid(NOTES_DB);
+    const response = await notionFetch(`/databases/${dbId}/query`, {
+      method: "POST",
+      body: JSON.stringify({
+        filter: { property: "Archived", checkbox: { equals: false } },
+        sorts: [{ timestamp: "created_time", direction: "descending" }],
+        page_size: 100,
+      }),
+    });
+
+    for (const page of response.results || []) {
+      const props = page.properties || {};
+      const title = getTitle(props, "Name").trim();
+      if (GENERIC_TITLES.includes(title.toLowerCase()) || title.length === 0) {
+        const pageId = page.id.replace(/-/g, "");
+        try {
+          const content = await getPageContent(pageId);
+          if (content.trim().length > 20) {
+            results.push({ id: pageId, title, content: content.slice(0, 2000) });
+          }
+        } catch {}
+      }
+    }
+  } else {
+    // CLI path
+    try {
+      const viewResult = callNotionCli("notion-query-database-view", {
+        database_id: "592d777bf7438256ad348129ae94a20d",
+        view_url: "view://727d777b-f743-834f-ba73-8817f4c83cf4",
+        page_size: 100,
+      });
+      for (const note of viewResult.results || []) {
+        const title = (note.Name || "").trim();
+        if (GENERIC_TITLES.includes(title.toLowerCase()) || title.length === 0) {
+          const id = extractPageId(note.url || "");
+          try {
+            const pageData = callNotionCli("notion-fetch", { id });
+            const contentMatch = (pageData.text || "").match(/<content>([\s\S]*?)<\/content>/);
+            const content = contentMatch ? contentMatch[1].trim() : "";
+            if (content.length > 20) {
+              results.push({ id, title, content: content.slice(0, 2000) });
+            }
+          } catch {}
+        }
+      }
+    } catch (err) {
+      console.error("Failed to find untitled notes:", err);
+    }
+  }
+
+  return results;
+}
+
+export async function updateNoteTitle(pageId: string, newTitle: string): Promise<void> {
+  const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+
+  if (hasApiKey) {
+    const uuid = formatUuid(pageId);
+    await notionFetch(`/pages/${uuid}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        properties: {
+          Name: { title: [{ text: { content: newTitle } }] },
+        },
+      }),
+    });
+  } else {
+    callNotionCli("notion-update-page", {
+      page_id: pageId,
+      command: "update_properties",
+      properties: { Name: newTitle },
+    });
+  }
+}

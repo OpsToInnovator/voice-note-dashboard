@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/lib/theme";
-import type { IntelligenceReport, ClassifiedTask, SystemAuditItem } from "@shared/schema";
+import type { IntelligenceReport, ClassifiedTask, SystemAuditItem, TitledNote } from "@shared/schema";
 import {
   Sun,
   Moon,
@@ -24,6 +24,8 @@ import {
   Merge,
   ChevronDown,
   ChevronUp,
+  FileEdit,
+  ArrowRight,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -492,6 +494,105 @@ function TaskClassifierSection() {
   );
 }
 
+// --- Note Auto-Titler Section ---
+function NoteTitlerSection() {
+  const [results, setResults] = useState<TitledNote[]>([]);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/notes/auto-title");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setResults(data.titled || []);
+    },
+  });
+
+  return (
+    <div
+      className="bg-card border border-card-border rounded-xl overflow-hidden animate-fade-in delay-6 mt-6"
+      data-testid="note-titler-section"
+    >
+      <div className="px-5 py-4 flex items-center justify-between border-b border-card-border">
+        <div className="flex items-center gap-2">
+          <FileEdit className="w-4 h-4 text-muted-foreground" />
+          <span className="font-display text-sm font-semibold">Auto-Title Notes</span>
+          <span className="text-[11px] text-muted-foreground">
+            Names untitled notes from content
+          </span>
+        </div>
+        <button
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending}
+          className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          data-testid="title-notes-button"
+        >
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Generating…
+            </>
+          ) : (
+            <>
+              <Zap className="w-3 h-3" />
+              Title Notes
+            </>
+          )}
+        </button>
+      </div>
+
+      {mutation.isPending && (
+        <div className="px-5 py-6 space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full rounded-lg" />
+          ))}
+        </div>
+      )}
+
+      {!mutation.isPending && results.length > 0 && (
+        <div className="divide-y divide-card-border">
+          {results.map((note, i) => (
+            <div
+              key={note.id}
+              className="px-5 py-3"
+              data-testid={`titled-note-${i}`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[12px] text-muted-foreground line-through">
+                  {note.oldTitle || "Untitled"}
+                </span>
+                <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                <span className="text-[13px] font-semibold text-primary">
+                  {note.newTitle}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground/60 truncate">
+                {note.contentPreview}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!mutation.isPending && results.length === 0 && !mutation.isIdle && (
+        <div className="px-5 py-6 text-center">
+          <p className="text-[13px] text-muted-foreground">
+            All notes already have titles.
+          </p>
+        </div>
+      )}
+
+      {mutation.isError && (
+        <div className="px-5 py-4">
+          <p className="text-[12px] text-destructive">
+            Failed to generate titles. Please try again.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Main Intelligence Page ---
 export default function Intelligence() {
   const { data, isLoading, error, refetch, isFetching } = useQuery<IntelligenceReport>({
@@ -586,7 +687,11 @@ export default function Intelligence() {
         )}
 
         {/* Task Classifier */}
-        <TaskClassifierSection />
+        {/* Tools Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <TaskClassifierSection />
+          <NoteTitlerSection />
+        </div>
       </div>
     </div>
   );

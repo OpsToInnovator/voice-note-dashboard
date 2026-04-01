@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import type { IntelligenceContext, IntelligenceReport } from "../shared/schema";
+import type { IntelligenceContext, IntelligenceReport, TitledNote } from "../shared/schema";
+import { findUntitledNotes, updateNoteTitle } from "./notion";
 
 const client = new OpenAI();
 
@@ -152,4 +153,63 @@ Respond ONLY with a JSON object, no markdown, no code blocks:
 
   cachedReport = { data: report, ts: Date.now() };
   return report;
+}
+
+// --- Auto-Title Generator ---
+
+export async function autoTitleNotes(): Promise<TitledNote[]> {
+  const untitled = await findUntitledNotes();
+  if (untitled.length === 0) return [];
+
+  const results: TitledNote[] = [];
+
+  // Process in batches of 3 to avoid rate limits
+  for (let i = 0; i < untitled.length; i += 3) {
+    const batch = untitled.slice(i, i + 3);
+    const titlePromises = batch.map(async (note) => {
+      try {
+        const response = await client.chat.completions.create({
+          model: "gpt-4o",
+          max_tokens: 100,
+          messages: [
+            {
+              role: "system",
+              content: `You generate clear, descriptive titles for notes. Rules:
+- Maximum 8 words
+- Must clearly convey the note's core intent or subject
+- Use plain language, no jargon unless the content is technical
+- Be specific, not generic ("Meeting with Paul about RSM timeline" not "Meeting Notes")
+- If the note is a reflection, lead with the theme ("Overcoming Self-Doubt Through Daily Practice")
+- If the note is action-oriented, lead with the action ("Plan: Carpark Upgrade Gate Meetings")
+- Respond with ONLY the title, nothing else`,
+            },
+            {
+              role: "user",
+              content: `Generate a title for this note:\n\n${note.content}`,
+            },
+          ],
+        });
+
+        const newTitle = (response.choices?.[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "");
+
+        if (newTitle && newTitle.length > 3 && newTitle.length < 100) {
+          await updateNoteTitle(note.id, newTitle);
+          return {
+            id: note.id,
+            oldTitle: note.title || "Untitled",
+            newTitle,
+            contentPreview: note.content.slice(0, 100) + (note.content.length > 100 ? "…" : ""),
+          };
+        }
+      } catch (err) {
+        console.error(`Failed to title note ${note.id}:`, err);
+      }
+      return null;
+    });
+
+    const batchResults = await Promise.all(titlePromises);
+    batchResults.forEach((r) => { if (r) results.push(r); });
+  }
+
+  return results;
 }

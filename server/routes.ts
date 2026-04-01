@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup, gatherIntelligenceContext, classifyUnclassifiedTasks } from "./notion";
-import { generateIntelligence } from "./intelligence";
+import { generateIntelligence, autoTitleNotes } from "./intelligence";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -88,6 +88,17 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Error classifying tasks:", err);
       res.status(500).json({ error: "Failed to classify tasks", message: err.message });
+    }
+  });
+
+  // Auto-Title Untitled Notes
+  app.post("/api/notes/auto-title", async (_req, res) => {
+    try {
+      const titled = await autoTitleNotes();
+      res.json({ titled, count: titled.length });
+    } catch (err: any) {
+      console.error("Error auto-titling notes:", err);
+      res.status(500).json({ error: "Failed to auto-title notes", message: err.message });
     }
   });
 
