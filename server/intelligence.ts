@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import type { IntelligenceContext, IntelligenceReport } from "../shared/schema";
 
-const client = new Anthropic();
+const client = new OpenAI();
 
 // Cache for LLM response (10 min)
 let cachedReport: { data: IntelligenceReport; ts: number } | null = null;
@@ -77,7 +77,7 @@ Based on ALL of this data, provide:
 
 5. WEEKLY PRIORITY: Looking at his goals and project health, what should be his #1 priority this week beyond today?
 
-Respond in JSON format:
+Respond ONLY with a JSON object, no markdown, no code blocks:
 {
   "primaryFocus": { "title": "...", "reasoning": "...", "connectedGoal": "..." },
   "patternInsight": { "observation": "...", "evidence": ["...", "..."] },
@@ -87,23 +87,21 @@ Respond in JSON format:
   "summary": "One sentence summary of the overall recommendation"
 }`;
 
-  const message = await client.messages.create({
-    model: "claude_sonnet_4_6",
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 2048,
     messages: [{ role: "user", content: prompt }],
+    response_format: { type: "json_object" },
   });
 
-  // Extract text from response
-  const textBlock = message.content.find((b: any) => b.type === "text");
-  const rawText = textBlock ? (textBlock as any).text : "";
+  const rawText = response.choices?.[0]?.message?.content || "";
 
-  // Parse JSON from the response (handle markdown code blocks)
+  // Parse JSON from the response
   let jsonStr = rawText;
   const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (jsonMatch) {
     jsonStr = jsonMatch[1].trim();
   } else {
-    // Try to find raw JSON object
     const braceMatch = rawText.match(/\{[\s\S]*\}/);
     if (braceMatch) {
       jsonStr = braceMatch[0];
@@ -114,7 +112,6 @@ Respond in JSON format:
   try {
     parsed = JSON.parse(jsonStr);
   } catch {
-    // Fallback if JSON parsing fails
     parsed = {
       primaryFocus: { title: "Review your current tasks", reasoning: "Unable to parse AI response. Check your data.", connectedGoal: "" },
       patternInsight: { observation: "Analysis unavailable", evidence: [] },
