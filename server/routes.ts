@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup } from "./notion";
+import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup, gatherIntelligenceContext, classifyUnclassifiedTasks } from "./notion";
+import { generateIntelligence } from "./intelligence";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -64,6 +65,29 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Error fetching projects:", err);
       res.status(500).json({ error: "Failed to fetch projects", message: err.message });
+    }
+  });
+
+  // Intelligence Engine
+  app.get("/api/intelligence", async (_req, res) => {
+    try {
+      const context = await gatherIntelligenceContext();
+      const report = await generateIntelligence(context);
+      res.json(report);
+    } catch (err: any) {
+      console.error("Error generating intelligence:", err);
+      res.status(500).json({ error: "Failed to generate intelligence report", message: err.message });
+    }
+  });
+
+  // Task Auto-Classification
+  app.post("/api/tasks/classify", async (_req, res) => {
+    try {
+      const classified = await classifyUnclassifiedTasks();
+      res.json({ classified, count: classified.length });
+    } catch (err: any) {
+      console.error("Error classifying tasks:", err);
+      res.status(500).json({ error: "Failed to classify tasks", message: err.message });
     }
   });
 

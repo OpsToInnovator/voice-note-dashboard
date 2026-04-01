@@ -6,6 +6,8 @@ import type {
   ProjectHealth,
   ProjectTaskSummary,
   DailyStandup,
+  IntelligenceContext,
+  ClassifiedTask,
 } from "../shared/schema";
 // --- Notion API client ---
 // CLI fallback for sandbox environments (optional)
@@ -1219,4 +1221,280 @@ export async function getDailyStandup(): Promise<DailyStandup> {
 
     return standup;
   }, STANDUP_CACHE_TTL);
+}
+
+// --- Intelligence Engine: Data Gathering ---
+
+const GOALS_DB_ID = "a5fd777bf743836a941481f7088746e7";
+const GOALS_VIEW_ID = "509d777b-f743-8267-a27d-88551b425458";
+const INTELLIGENCE_CACHE_TTL = 300_000; // 5 min
+
+export async function gatherIntelligenceContext(): Promise<IntelligenceContext> {
+  return cached("intelligence-context", async () => {
+    const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+
+    // 1. Goals
+    let goals: IntelligenceContext["goals"] = [];
+    try {
+      if (hasApiKey) {
+        const goalsDbId = formatUuid(GOALS_DB_ID);
+        const goalsRes = await notionFetch(`/databases/${goalsDbId}/query`, {
+          method: "POST",
+          body: JSON.stringify({
+            filter: { property: "Archived", checkbox: { equals: false } },
+          }),
+        });
+        goals = (goalsRes.results || []).map((g: any) => {
+          const props = g.properties || {};
+          return {
+            name: getTitle(props, "Name"),
+            status: getStatus(props, "Status"),
+            projectCount: getRelationIds(props, "Projects").length,
+          };
+        });
+      } else {
+        const result = callNotionCli("notion-query-database-view", {
+          database_id: GOALS_DB_ID,
+          view_url: `view://${GOALS_VIEW_ID}`,
+        });
+        goals = (result.results || []).map((g: any) => ({
+          name: g.Name || "",
+          status: g.Status || "",
+          projectCount: 0,
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch goals:", err);
+    }
+
+    // 2. Projects (reuse existing)
+    const rawProjects = await listProjects();
+    const projects: IntelligenceContext["projects"] = rawProjects.map((p) => ({
+      name: p.name,
+      status: p.status,
+      health: p.health,
+      taskCount: p.taskCount,
+      tasksDone: p.tasksDone,
+      tasksOverdue: p.tasksOverdue,
+    }));
+
+    // 3. Recent tasks (last 14 days)
+    let recentTasks: IntelligenceContext["recentTasks"] = [];
+    try {
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+      if (hasApiKey) {
+        const tasksDbId = formatUuid(TASKS_DB_ID);
+        const tasksRes = await notionFetch(`/databases/${tasksDbId}/query`, {
+          method: "POST",
+          body: JSON.stringify({
+            filter: {
+              or: [
+                { property: "Completed", date: { on_or_after: fourteenDaysAgo } },
+                { timestamp: "created_time", created_time: { on_or_after: fourteenDaysAgo } },
+              ],
+            },
+            page_size: 100,
+          }),
+        });
+        recentTasks = (tasksRes.results || []).map((t: any) => {
+          const props = t.properties || {};
+          return {
+            name: getTitle(props, "Name"),
+            status: getStatus(props, "Status"),
+            type: getSelect(props, "P/I"),
+            completed: getDate(props, "Completed"),
+          };
+        });
+      } else {
+        // CLI path: use existing task views
+        const views = [TASKS_ACTIVE_VIEW_ID, TASKS_COMPLETE_VIEW_ID];
+        for (const viewId of views) {
+          try {
+            const viewUrl = `https://www.notion.so/${TASKS_DB_ID}?v=${viewId}`;
+            const result = callNotionCli("notion-query-database-view", { view_url: viewUrl });
+            for (const t of result.results || []) {
+              const completed = t["date:Completed:start"] || null;
+              const created = t.Created || "";
+              const isRecent = (completed && completed >= fourteenDaysAgo) ||
+                               (created && created >= fourteenDaysAgo);
+              if (isRecent) {
+                recentTasks.push({
+                  name: t.Name || "",
+                  status: t.Status || "",
+                  type: t["P/I"] || "",
+                  completed: completed,
+                });
+              }
+            }
+          } catch {}
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch recent tasks:", err);
+    }
+
+    // 4. Recent voice notes with content summaries
+    let voiceNoteThemes: IntelligenceContext["voiceNoteThemes"] = [];
+    try {
+      let allNotes: VoiceNoteListItem[] = [];
+      if (hasApiKey) {
+        allNotes = await listVoiceNotes();
+      } else {
+        // CLI path: query notes DB
+        try {
+          const notesDbId = "592d777bf7438256ad348129ae94a20d";
+          const notesViewUrl = `https://www.notion.so/${notesDbId}`;
+          const notesResult = callNotionCli("notion-query-database-view", { view_url: notesViewUrl });
+          allNotes = (notesResult.results || [])
+            .filter((n: any) => (n.Type || "") === "Voice Note")
+            .map((n: any) => ({
+              id: extractIdFromUrl(n.url || ""),
+              name: n.Name || "",
+              noteDate: n["date:Note Date:start"] || null,
+              created: n.Created || "",
+              updated: n.Edited || "",
+              durationSeconds: n["Duration (Seconds)"] ? Number(n["Duration (Seconds)"]) : null,
+              taskCount: 0,
+              url: n.url || "",
+            }));
+        } catch {}
+      }
+
+      const recent10 = allNotes.slice(0, 10);
+      // Fetch content for each in batches to extract themes
+      for (const note of recent10) {
+        try {
+          const content = await getPageContent(note.id);
+          const parsed = parseVoiceNoteContent(content);
+          voiceNoteThemes.push({
+            name: note.name,
+            summary: parsed.summary || (parsed.keyThreads.length > 0 ? parsed.keyThreads.map(t => t.title).join(", ") : content.slice(0, 200)),
+            date: note.created || note.noteDate || "",
+          });
+        } catch {
+          voiceNoteThemes.push({
+            name: note.name,
+            summary: "",
+            date: note.created || note.noteDate || "",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch voice note themes:", err);
+    }
+
+    // 5. Standup data for today's counts
+    const standup = await getDailyStandup();
+
+    return {
+      goals,
+      projects,
+      recentTasks,
+      voiceNoteThemes,
+      todayDueCount: standup.stats.dueTodayCount,
+      overdueCount: standup.stats.overdueCount,
+      completedYesterdayCount: standup.stats.completedYesterdayCount,
+    };
+  }, INTELLIGENCE_CACHE_TTL);
+}
+
+// --- Task Auto-Classification ---
+
+const PROCESS_KEYWORDS = [
+  "email", "send", "schedule", "book", "call", "catch up", "update", "submit",
+  "order", "notify", "check", "approve", "review", "forward", "share", "ask",
+  "confirm", "delegate", "follow up", "remind", "log", "report",
+];
+
+const IMMERSIVE_KEYWORDS = [
+  "research", "develop", "design", "write", "create", "build", "plan", "analyze",
+  "prepare", "study", "draft", "model", "prototype", "reflect", "brainstorm",
+  "learn", "practice", "implement", "compose", "architect", "strategize", "think",
+  "explore", "investigate",
+];
+
+function classifyTaskName(name: string): string {
+  const lower = name.toLowerCase();
+  for (const kw of PROCESS_KEYWORDS) {
+    if (lower.includes(kw)) return "Process";
+  }
+  for (const kw of IMMERSIVE_KEYWORDS) {
+    if (lower.includes(kw)) return "Immersive";
+  }
+  return "Immersive"; // default to focus work
+}
+
+export async function classifyUnclassifiedTasks(): Promise<ClassifiedTask[]> {
+  const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+  const classified: ClassifiedTask[] = [];
+
+  if (hasApiKey) {
+    // Direct API: query tasks where P/I is empty
+    const tasksDbId = formatUuid(TASKS_DB_ID);
+    const res = await notionFetch(`/databases/${tasksDbId}/query`, {
+      method: "POST",
+      body: JSON.stringify({
+        filter: {
+          and: [
+            { property: "P/I", select: { is_empty: true } },
+            { property: "Status", status: { does_not_equal: "Done" } },
+          ],
+        },
+        page_size: 50,
+      }),
+    });
+
+    for (const page of res.results || []) {
+      const props = page.properties || {};
+      const name = getTitle(props, "Name");
+      const taskId = page.id.replace(/-/g, "");
+      const classification = classifyTaskName(name);
+
+      try {
+        const uuid = formatUuid(taskId);
+        await notionFetch(`/pages/${uuid}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            properties: { "P/I": { select: { name: classification } } },
+          }),
+        });
+        classified.push({ id: taskId, name, classification });
+      } catch (err) {
+        console.error(`Failed to classify task ${taskId}:`, err);
+      }
+    }
+  } else {
+    // CLI path: get tasks from active view, find unclassified, update via CLI
+    try {
+      const viewUrl = `https://www.notion.so/${TASKS_DB_ID}?v=${TASKS_ACTIVE_VIEW_ID}`;
+      const result = callNotionCli("notion-query-database-view", { view_url: viewUrl });
+      const tasks = result.results || [];
+
+      for (const t of tasks) {
+        const pi = t["P/I"] || "";
+        if (pi) continue; // already classified
+
+        const name = t.Name || "";
+        const taskId = extractIdFromUrl(t.url || "");
+        if (!taskId || !name) continue;
+
+        const classification = classifyTaskName(name);
+
+        try {
+          callNotionCli("notion-update-page", {
+            page_id: taskId,
+            command: "update_properties",
+            properties: { "P/I": classification },
+          });
+          classified.push({ id: taskId, name, classification });
+        } catch (err) {
+          console.error(`Failed to classify task ${taskId} via CLI:`, err);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch tasks for classification:", err);
+    }
+  }
+
+  return classified;
 }

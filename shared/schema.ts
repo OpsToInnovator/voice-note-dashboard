@@ -94,3 +94,31 @@ export interface DailyStandup {
     activeProjects: number;
   };
 }
+
+// --- Intelligence Engine ---
+
+export interface IntelligenceContext {
+  goals: { name: string; status: string; projectCount: number }[];
+  projects: { name: string; status: string; health: string; taskCount: number; tasksDone: number; tasksOverdue: number }[];
+  recentTasks: { name: string; status: string; type: string; completed: string | null }[];
+  voiceNoteThemes: { name: string; summary: string; date: string }[];
+  todayDueCount: number;
+  overdueCount: number;
+  completedYesterdayCount: number;
+}
+
+export interface IntelligenceReport {
+  primaryFocus: { title: string; reasoning: string; connectedGoal: string };
+  patternInsight: { observation: string; evidence: string[] };
+  riskFlag: { item: string; reason: string; suggestedAction: string };
+  momentumWin: { achievement: string; leverage: string };
+  weeklyPriority: { focus: string; reasoning: string };
+  summary: string;
+  generatedAt: string;
+}
+
+export interface ClassifiedTask {
+  id: string;
+  name: string;
+  classification: string;
+}
