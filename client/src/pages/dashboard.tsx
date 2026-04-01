@@ -791,7 +791,7 @@ function VoiceNoteDetailView({ noteId }: { noteId: string }) {
   const { data: detail, isLoading, error } = useQuery<VoiceNoteDetail>({
     queryKey: ["/api/voice-notes", noteId],
     enabled: !!noteId,
-    staleTime: 60000,
+    staleTime: 1800000, // 30 min
   });
 
   if (isLoading) return <DetailSkeleton />;
@@ -960,8 +960,12 @@ export default function Dashboard() {
 
   const { data: notes = [], isLoading } = useQuery<VoiceNoteListItem[]>({
     queryKey: ["/api/voice-notes"],
-    staleTime: 60000,
+    staleTime: 1800000, // 30 min
   });
+
+  // Prefetch other tabs so switching is instant
+  useQuery({ queryKey: ["/api/projects"], staleTime: 1800000, enabled: !isLoading });
+  useQuery({ queryKey: ["/api/standup"], staleTime: 1800000, enabled: !isLoading });
 
   return (
     <div className="flex h-screen bg-background">

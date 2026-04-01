@@ -447,7 +447,7 @@ function StandupSkeleton() {
 export default function Standup() {
   const { data, isLoading, error } = useQuery<DailyStandup>({
     queryKey: ["/api/standup"],
-    staleTime: 120000,
+    staleTime: 1800000, // 30 min
   });
 
   if (isLoading) return <StandupSkeleton />;

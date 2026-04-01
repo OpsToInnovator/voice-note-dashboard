@@ -56,7 +56,7 @@ async function notionFetch(endpoint: string, options: RequestInit = {}): Promise
 
 // --- Simple in-memory cache ---
 const cache = new Map<string, { data: any; ts: number }>();
-const CACHE_TTL = 60_000; // 60 seconds
+const CACHE_TTL = 1_800_000; // 30 minutes
 
 async function cached<T>(key: string, fn: () => Promise<T>, ttl: number = CACHE_TTL): Promise<T> {
   const entry = cache.get(key);
@@ -891,7 +891,7 @@ export async function listProjects(): Promise<ProjectHealth[]> {
 
 // --- Daily Standup ---
 
-const STANDUP_CACHE_TTL = 120_000; // 120 seconds
+const STANDUP_CACHE_TTL = 1_800_000; // 30 minutes
 
 function getAWSTDates() {
   // Australia/Perth is UTC+8
@@ -1229,7 +1229,7 @@ export async function getDailyStandup(): Promise<DailyStandup> {
 
 const GOALS_DB_ID = "a5fd777bf743836a941481f7088746e7";
 const GOALS_VIEW_ID = "509d777b-f743-8267-a27d-88551b425458";
-const INTELLIGENCE_CACHE_TTL = 300_000; // 5 min
+const INTELLIGENCE_CACHE_TTL = 1_800_000; // 30 minutes
 
 export async function gatherIntelligenceContext(): Promise<IntelligenceContext> {
   return cached("intelligence-context", async () => {

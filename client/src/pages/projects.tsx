@@ -670,7 +670,7 @@ function ProjectsSidebar({
 export default function Projects() {
   const { data: projects = [], isLoading, error } = useQuery<ProjectHealth[]>({
     queryKey: ["/api/projects"],
-    staleTime: 60000,
+    staleTime: 1800000, // 30 min
   });
 
   // Sort projects: stalled first, then attention, healthy, paused/waiting

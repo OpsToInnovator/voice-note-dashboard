@@ -6,7 +6,7 @@ const client = new OpenAI();
 
 // Cache for LLM response (10 min)
 let cachedReport: { data: IntelligenceReport; ts: number } | null = null;
-const LLM_CACHE_TTL = 600_000;
+const LLM_CACHE_TTL = 1_800_000; // 30 minutes
 
 export async function generateIntelligence(context: IntelligenceContext): Promise<IntelligenceReport> {
   if (cachedReport && Date.now() - cachedReport.ts < LLM_CACHE_TTL) {

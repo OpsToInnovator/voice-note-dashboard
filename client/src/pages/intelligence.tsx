@@ -597,7 +597,7 @@ function NoteTitlerSection() {
 export default function Intelligence() {
   const { data, isLoading, error, refetch, isFetching } = useQuery<IntelligenceReport>({
     queryKey: ["/api/intelligence"],
-    staleTime: 600000, // 10 min
+    staleTime: 1800000, // 30 min
     retry: 1,
   });
 
