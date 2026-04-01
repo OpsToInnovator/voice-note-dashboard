@@ -241,9 +241,11 @@ function parseThomasFrankFormat(content: string, result: ParsedContent): ParsedC
       bullets.forEach((b, i) => {
         const text = b.replace(/^[\t ]*[-*]\s+/, "").trim();
         if (text.length > 5) {
+          // Title is the short version, description is only set if text is long enough to warrant expanding
+          const title = text.length > 60 ? text.slice(0, 60) + "…" : text;
           result.keyThreads.push({
-            title: text.length > 60 ? text.slice(0, 60) + "…" : text,
-            description: text,
+            title,
+            description: text.length > 60 ? text : "",
             icon: threadIcons[i % threadIcons.length],
           });
         }

@@ -517,24 +517,21 @@ function KeyThreadsSection({ threads }: { threads: VoiceNoteDetail["content"]["k
                 <div className="font-display text-sm font-semibold">
                   {thread.title}
                 </div>
-                {(expandedIdx === i || !thread.description) ? null : (
-                  <div className="text-[13px] text-muted-foreground line-clamp-1 mt-0.5">
-                    {thread.description}
-                  </div>
-                )}
-                {expandedIdx === i && thread.description && (
+                {thread.description && thread.description !== thread.title && expandedIdx === i && (
                   <div className="text-[13px] text-muted-foreground mt-1 leading-relaxed">
                     {thread.description}
                   </div>
                 )}
               </div>
-              <div className="flex-shrink-0 text-muted-foreground mt-1">
-                {expandedIdx === i ? (
-                  <ChevronUp className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                )}
-              </div>
+              {thread.description && thread.description !== thread.title && (
+                <div className="flex-shrink-0 text-muted-foreground mt-1">
+                  {expandedIdx === i ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </div>
+              )}
             </button>
           </li>
         ))}
