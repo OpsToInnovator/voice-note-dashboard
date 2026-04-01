@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE — Voice Note Dashboard palette */
+/* LIGHT MODE — Noticing Lens palette */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);

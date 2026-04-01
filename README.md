@@ -1,6 +1,6 @@
-# Voice Note Dashboard
+# Noticing Lens
 
-A live dashboard that visualises your Notion voice notes with charts, KPI cards, task breakdowns, and insight analysis. Connects directly to your Notion workspace via the official API.
+A personal intelligence lens for your Notion second brain. Extracts tasks from voice notes, tracks project health, builds proof of identity from completed work with charts, KPI cards, task breakdowns, and insight analysis. Connects directly to your Notion workspace via the official API.
 
 ## Setup
 
@@ -8,7 +8,7 @@ A live dashboard that visualises your Notion voice notes with charts, KPI cards,
 
 1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations)
 2. Click **New integration**
-3. Name it "Voice Note Dashboard"
+3. Name it "Noticing Lens"
 4. Select your workspace
 5. Copy the **Internal Integration Secret** (starts with `ntn_`)
 
@@ -17,7 +17,7 @@ A live dashboard that visualises your Notion voice notes with charts, KPI cards,
 In Notion, open each database and share it with your integration:
 
 1. Open your **Notes** database
-2. Click **...** → **Connections** → find "Voice Note Dashboard" → **Confirm**
+2. Click **...** → **Connections** → find "Noticing Lens" → **Confirm**
 3. Repeat for your **Tasks** database
 
 ### 3. Configure Environment

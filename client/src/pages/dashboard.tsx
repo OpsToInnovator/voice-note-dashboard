@@ -756,7 +756,7 @@ function EmptyState() {
           <Mic className="w-7 h-7 text-primary" />
         </div>
         <h2 className="font-display text-lg font-semibold mb-2">
-          Voice Note Dashboard
+          Noticing Lens
         </h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Select a voice note from the sidebar to view its summary, tasks,
