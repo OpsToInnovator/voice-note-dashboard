@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import type { IntelligenceContext, IntelligenceReport, TitledNote } from "../shared/schema";
-import { findUntitledNotes, updateNoteTitle } from "./notion";
+import type { IntelligenceContext, IntelligenceReport, TitledNote, ProcessedVoiceNote, ProcessingResult } from "../shared/schema";
+import { findUntitledNotes, updateNoteTitle, getUnprocessedVoiceNotes, getVoiceNoteContent, getProjectLookup, createTaskInNotion } from "./notion";
 
 const client = new OpenAI();
 
@@ -153,6 +153,134 @@ Respond ONLY with a JSON object, no markdown, no code blocks:
 
   cachedReport = { data: report, ts: Date.now() };
   return report;
+}
+
+// --- Voice Note Task Extractor ---
+
+export async function processVoiceNotes(): Promise<ProcessingResult> {
+  // Step 5: Auto-title untitled notes first
+  const titledNotes = await autoTitleNotes();
+
+  // Step 1: Find unprocessed voice notes
+  const allUnprocessed = await getUnprocessedVoiceNotes();
+  // Limit to 10 per request to avoid timeouts
+  const toProcess = allUnprocessed.slice(0, 10);
+
+  if (toProcess.length === 0) {
+    return {
+      notesProcessed: 0,
+      tasksCreated: 0,
+      notesTitled: titledNotes.length,
+      details: [],
+      titledNotes,
+    };
+  }
+
+  // Get project lookup map for matching
+  const projectLookup = await getProjectLookup();
+  const projectNames = Array.from(projectLookup.keys());
+
+  const details: ProcessedVoiceNote[] = [];
+  let totalTasksCreated = 0;
+
+  for (const note of toProcess) {
+    try {
+      // Step 2: Get content
+      const content = await getVoiceNoteContent(note.id);
+      if (!content || content.trim().length < 20) {
+        details.push({ id: note.id, name: note.name, tasksCreated: [] });
+        continue;
+      }
+
+      // Step 3: Send to GPT-4o for task extraction
+      const prompt = `You extract actionable tasks from voice note content and match them to existing projects.
+
+EXISTING PROJECTS:
+${projectNames.map(n => `- ${n}`).join("\n")}
+
+VOICE NOTE CONTENT:
+${content.slice(0, 4000)}
+
+Extract concrete, actionable tasks from this voice note. For each task:
+1. Write a clear task name (action-oriented, specific, max 10 words)
+2. Classify as "Process" (quick, delegatable, communication) or "Immersive" (focus work, deep thinking, creation)
+3. Match to the most relevant existing project from the list above, or suggest "NONE" if no project fits
+4. Assign priority: "High" (urgent, blocks other work, time-sensitive, directly tied to active goals), "Medium" (important but not urgent, supports ongoing projects), or "Low" (nice to have, can be deferred)
+
+Only extract REAL action items — things that need to be done. Skip observations, reflections, and insights that aren't actionable.
+
+If the voice note has NO actionable tasks (it's purely a reflection or observation), return an empty array.
+
+Respond ONLY with JSON:
+{ "tasks": [{ "name": "...", "type": "Process|Immersive", "project": "Exact Project Name|NONE", "priority": "High|Medium|Low" }] }`;
+
+      const response = await client.chat.completions.create({
+        model: "gpt-4o",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+      });
+
+      const rawText = response.choices?.[0]?.message?.content || "";
+      let parsed: { tasks: { name: string; type: string; project: string; priority: string }[] };
+      try {
+        parsed = JSON.parse(rawText);
+      } catch {
+        parsed = { tasks: [] };
+      }
+
+      const tasks = parsed.tasks || [];
+      const createdTasks: ProcessedVoiceNote["tasksCreated"] = [];
+
+      // Step 4: Create tasks in Notion
+      for (const task of tasks) {
+        try {
+          const taskType = task.type === "Process" ? "Process" : "Immersive";
+          const priority = ["High", "Medium", "Low"].includes(task.priority) ? task.priority : "Medium";
+          const matchedProject = task.project && task.project !== "NONE"
+            ? projectLookup.get(task.project) || null
+            : null;
+
+          await createTaskInNotion(
+            task.name,
+            taskType,
+            priority,
+            note.id,
+            matchedProject?.id || null,
+            matchedProject?.url || null,
+          );
+
+          createdTasks.push({
+            name: task.name,
+            type: taskType,
+            project: matchedProject ? task.project : "",
+            priority,
+          });
+          totalTasksCreated++;
+        } catch (err) {
+          console.error(`Failed to create task "${task.name}":`, err);
+        }
+      }
+
+      details.push({ id: note.id, name: note.name, tasksCreated: createdTasks });
+    } catch (err) {
+      console.error(`Failed to process voice note ${note.id}:`, err);
+      details.push({ id: note.id, name: note.name, tasksCreated: [] });
+    }
+  }
+
+  return {
+    notesProcessed: toProcess.length,
+    tasksCreated: totalTasksCreated,
+    notesTitled: titledNotes.length,
+    details,
+    titledNotes,
+  };
+}
+
+export async function getUnprocessedVoiceNoteCount(): Promise<number> {
+  const unprocessed = await getUnprocessedVoiceNotes();
+  return unprocessed.length;
 }
 
 // --- Auto-Title Generator ---

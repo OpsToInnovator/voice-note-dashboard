@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/lib/theme";
-import type { DailyStandup } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import type { DailyStandup, ProcessingResult } from "@shared/schema";
 import {
   Sun,
   Moon,
@@ -15,6 +17,11 @@ import {
   Mic,
   ExternalLink,
   Coffee,
+  Loader2,
+  Sparkles,
+  FileText,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -421,6 +428,215 @@ function RecentVoiceNotesSection({
   );
 }
 
+// --- Priority Badge ---
+function PriorityBadgeSmall({ priority }: { priority: string }) {
+  if (!priority) return null;
+  const isHigh = priority === "High";
+  const isMedium = priority === "Medium";
+  return (
+    <span
+      className={`text-[10px] font-medium px-2 py-0.5 rounded ${
+        isHigh
+          ? "text-destructive bg-destructive/10"
+          : isMedium
+            ? "text-chart-3 bg-chart-3/10"
+            : "text-muted-foreground bg-muted"
+      }`}
+    >
+      {priority}
+    </span>
+  );
+}
+
+// --- Voice Note Task Extractor ---
+function VoiceNoteProcessorSection() {
+  const [result, setResult] = useState<ProcessingResult | null>(null);
+
+  const { data: countData } = useQuery<{ count: number }>({
+    queryKey: ["/api/voice-notes/unprocessed-count"],
+    staleTime: 300000, // 5 min
+  });
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/process-voice-notes");
+      return (await res.json()) as ProcessingResult;
+    },
+    onSuccess: (data) => {
+      setResult(data);
+      // Refresh unprocessed count
+      queryClient.invalidateQueries({ queryKey: ["/api/voice-notes/unprocessed-count"] });
+    },
+  });
+
+  const unprocessedCount = countData?.count ?? 0;
+
+  return (
+    <div
+      className="bg-card border border-card-border rounded-xl overflow-hidden animate-fade-in delay-7"
+      data-testid="voice-note-processor-section"
+    >
+      <div className="px-5 py-3.5 flex items-center justify-between border-b border-card-border">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span className="font-display text-sm font-semibold">Process Voice Notes</span>
+          {unprocessedCount > 0 && (
+            <span className="text-[11px] font-semibold text-primary-foreground bg-primary px-2 py-0.5 rounded-full tabular-nums">
+              {unprocessedCount}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="px-5 py-4">
+        {/* Status message */}
+        {!mutation.isPending && !result && (
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] text-muted-foreground">
+              {unprocessedCount > 0
+                ? `${unprocessedCount} voice note${unprocessedCount !== 1 ? "s" : ""} need processing`
+                : "All voice notes have been processed"}
+            </p>
+            <button
+              onClick={() => mutation.mutate()}
+              disabled={unprocessedCount === 0}
+              className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              data-testid="button-process-voice-notes"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              Process{unprocessedCount > 10 ? " Next 10" : ""}
+            </button>
+          </div>
+        )}
+
+        {/* Loading state */}
+        {mutation.isPending && (
+          <div className="flex items-center gap-3 py-2">
+            <Loader2 className="w-4 h-4 text-primary animate-spin" />
+            <p className="text-[13px] text-muted-foreground">
+              Reading voice notes and extracting tasks…
+            </p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {mutation.isError && !result && (
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] text-destructive">
+              Failed to process voice notes. Try again.
+            </p>
+            <button
+              onClick={() => mutation.mutate()}
+              className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1.5"
+              data-testid="button-retry-process"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Results */}
+        {result && (
+          <div className="space-y-4">
+            {/* Summary stats */}
+            <div className="flex items-center gap-4 text-[12px]">
+              <span className="text-muted-foreground">
+                <span className="font-semibold text-foreground tabular-nums">{result.notesProcessed}</span> note{result.notesProcessed !== 1 ? "s" : ""} processed
+              </span>
+              <span className="text-muted-foreground">
+                <span className="font-semibold text-primary tabular-nums">{result.tasksCreated}</span> task{result.tasksCreated !== 1 ? "s" : ""} created
+              </span>
+              {result.notesTitled > 0 && (
+                <span className="text-muted-foreground">
+                  <span className="font-semibold text-chart-2 tabular-nums">{result.notesTitled}</span> note{result.notesTitled !== 1 ? "s" : ""} titled
+                </span>
+              )}
+            </div>
+
+            {/* Processed notes detail */}
+            {result.details.filter(d => d.tasksCreated.length > 0).map((detail) => (
+              <div key={detail.id} className="border border-card-border rounded-lg overflow-hidden">
+                <div className="px-4 py-2.5 bg-muted/30 flex items-center gap-2 border-b border-card-border">
+                  <Mic className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                  <span className="text-[12px] font-medium truncate">{detail.name}</span>
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded tabular-nums flex-shrink-0">
+                    {detail.tasksCreated.length} task{detail.tasksCreated.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <ul>
+                  {detail.tasksCreated.map((task, i) => (
+                    <li
+                      key={i}
+                      className="px-4 py-2 border-b border-card-border last:border-b-0 flex items-center gap-2.5"
+                      data-testid={`extracted-task-${detail.id}-${i}`}
+                    >
+                      <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      <span className="text-[12px] flex-1 min-w-0 truncate">{task.name}</span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <TypeBadge type={task.type} />
+                        <PriorityBadgeSmall priority={task.priority} />
+                        {task.project && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                            {task.project}
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+
+            {/* Notes with no tasks extracted */}
+            {result.details.filter(d => d.tasksCreated.length === 0).length > 0 && (
+              <p className="text-[11px] text-muted-foreground">
+                {result.details.filter(d => d.tasksCreated.length === 0).length} note{result.details.filter(d => d.tasksCreated.length === 0).length !== 1 ? "s" : ""} had no actionable tasks
+              </p>
+            )}
+
+            {/* Auto-titled notes */}
+            {result.titledNotes.length > 0 && (
+              <div className="border border-card-border rounded-lg overflow-hidden">
+                <div className="px-4 py-2.5 bg-muted/30 flex items-center gap-2 border-b border-card-border">
+                  <FileText className="w-3.5 h-3.5 text-chart-2 flex-shrink-0" />
+                  <span className="text-[12px] font-medium">Auto-Titled Notes</span>
+                </div>
+                <ul>
+                  {result.titledNotes.map((note, i) => (
+                    <li
+                      key={note.id}
+                      className="px-4 py-2 border-b border-card-border last:border-b-0 flex items-center gap-2.5 text-[12px]"
+                      data-testid={`titled-note-${i}`}
+                    >
+                      <span className="text-muted-foreground line-through">{note.oldTitle}</span>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      <span className="font-medium">{note.newTitle}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Process more button */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setResult(null);
+                  mutation.reset();
+                }}
+                className="text-[12px] font-medium px-3 py-1.5 rounded-md border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
+                data-testid="button-process-more"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Loading Skeleton ---
 function StandupSkeleton() {
   return (
@@ -535,6 +751,9 @@ export default function Standup() {
 
           {/* Recent Voice Notes */}
           <RecentVoiceNotesSection notes={data.recentVoiceNotes} />
+
+          {/* Voice Note Task Extractor */}
+          <VoiceNoteProcessorSection />
         </div>
       </div>
     </div>

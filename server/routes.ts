@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup, gatherIntelligenceContext, classifyUnclassifiedTasks } from "./notion";
-import { generateIntelligence, autoTitleNotes } from "./intelligence";
+import { generateIntelligence, autoTitleNotes, processVoiceNotes, getUnprocessedVoiceNoteCount } from "./intelligence";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -16,6 +16,17 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Error fetching voice notes:", err);
       res.status(500).json({ error: "Failed to fetch voice notes", message: err.message });
+    }
+  });
+
+  // Unprocessed voice note count (MUST be before :id route)
+  app.get("/api/voice-notes/unprocessed-count", async (_req, res) => {
+    try {
+      const count = await getUnprocessedVoiceNoteCount();
+      res.json({ count });
+    } catch (err: any) {
+      console.error("Error fetching unprocessed count:", err);
+      res.status(500).json({ error: "Failed to fetch unprocessed count", message: err.message });
     }
   });
 
@@ -99,6 +110,17 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Error auto-titling notes:", err);
       res.status(500).json({ error: "Failed to auto-title notes", message: err.message });
+    }
+  });
+
+  // Voice Note Task Extractor
+  app.post("/api/process-voice-notes", async (_req, res) => {
+    try {
+      const result = await processVoiceNotes();
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error processing voice notes:", err);
+      res.status(500).json({ error: "Failed to process voice notes", message: err.message });
     }
   });
 

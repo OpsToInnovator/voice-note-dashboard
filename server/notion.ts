@@ -1563,6 +1563,165 @@ export async function findUntitledNotes(): Promise<{ id: string; title: string; 
   return results;
 }
 
+// --- Voice Note Task Extractor: Notion operations ---
+
+export async function getUnprocessedVoiceNotes(): Promise<{ id: string; name: string }[]> {
+  const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+  const results: { id: string; name: string }[] = [];
+
+  if (hasApiKey) {
+    const pages = await queryVoiceNotes();
+    for (const p of pages) {
+      const props = p.properties || {};
+      const taskIds = getRelationIds(props, "Tasks");
+      if (taskIds.length === 0) {
+        results.push({
+          id: p.id.replace(/-/g, ""),
+          name: getTitle(props, "Name") || "Untitled",
+        });
+      }
+    }
+  } else {
+    try {
+      const viewResult = callNotionCli("notion-query-database-view", {
+        database_id: "592d777bf7438256ad348129ae94a20d",
+        view_url: "view://727d777b-f743-834f-ba73-8817f4c83cf4",
+        filter: '"Type" = "Voice Note"',
+        page_size: 50,
+      });
+      for (const note of viewResult.results || []) {
+        // Check if Tasks relation is empty
+        const tasksRaw = note.Tasks || "";
+        let taskUrls: string[] = [];
+        try {
+          if (tasksRaw && tasksRaw !== "<omitted />") {
+            taskUrls = JSON.parse(tasksRaw);
+          }
+        } catch {}
+        if (taskUrls.length === 0) {
+          results.push({
+            id: extractIdFromUrl(note.url || ""),
+            name: note.Name || "Untitled",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch voice notes for task extraction:", err);
+    }
+  }
+
+  return results;
+}
+
+export async function getVoiceNoteContent(pageId: string): Promise<string> {
+  const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+
+  if (hasApiKey) {
+    return getPageContent(pageId);
+  } else {
+    try {
+      const pageData = callNotionCli("notion-fetch", { id: pageId });
+      const contentMatch = (pageData.text || "").match(/<content>([\s\S]*?)<\/content>/);
+      return contentMatch ? contentMatch[1].trim() : "";
+    } catch (err) {
+      console.error(`Failed to fetch content for ${pageId}:`, err);
+      return "";
+    }
+  }
+}
+
+export async function getProjectLookup(): Promise<Map<string, { id: string; url: string }>> {
+  const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+  const lookup = new Map<string, { id: string; url: string }>();
+
+  if (hasApiKey) {
+    const dbId = formatUuid(PROJECTS_DB_ID);
+    let allResults: any[] = [];
+    let startCursor: string | undefined;
+
+    do {
+      const body: any = {
+        filter: { property: "Archived", checkbox: { equals: false } },
+        page_size: 100,
+      };
+      if (startCursor) body.start_cursor = startCursor;
+
+      const response = await notionFetch(`/databases/${dbId}/query`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      allResults = allResults.concat(response.results || []);
+      startCursor = response.has_more ? response.next_cursor : undefined;
+    } while (startCursor);
+
+    for (const proj of allResults) {
+      const props = proj.properties || {};
+      const name = getTitle(props, "Name");
+      const id = proj.id.replace(/-/g, "");
+      const url = proj.url || "";
+      if (name) lookup.set(name, { id, url });
+    }
+  } else {
+    try {
+      const viewUrl = `https://www.notion.so/${PROJECTS_DB_ID}?v=${PROJECTS_VIEW_ID}`;
+      const projResult = callNotionCli("notion-query-database-view", { view_url: viewUrl });
+      for (const proj of projResult.results || []) {
+        const name = proj.Name || "";
+        const url = proj.url || "";
+        const id = extractIdFromUrl(url);
+        if (name) lookup.set(name, { id, url });
+      }
+    } catch (err) {
+      console.error("Failed to fetch projects for lookup:", err);
+    }
+  }
+
+  return lookup;
+}
+
+export async function createTaskInNotion(
+  taskName: string,
+  taskType: string,
+  priority: string,
+  voiceNoteId: string,
+  projectId: string | null,
+  projectUrl: string | null,
+): Promise<void> {
+  const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+
+  if (hasApiKey) {
+    await notionFetch(`/pages`, {
+      method: "POST",
+      body: JSON.stringify({
+        parent: { database_id: formatUuid("6bfd777bf7438394a98c01400b00f442") },
+        properties: {
+          "Name": { title: [{ text: { content: taskName } }] },
+          "Status": { status: { name: "To Do" } },
+          "P/I": { select: { name: taskType } },
+          "Priority": { status: { name: priority } },
+          "Notes": { relation: [{ id: formatUuid(voiceNoteId) }] },
+          ...(projectId ? { "Project": { relation: [{ id: formatUuid(projectId) }] } } : {}),
+        },
+      }),
+    });
+  } else {
+    callNotionCli("notion-create-pages", {
+      parent: { data_source_id: "fa1d777b-f743-820e-9c41-0738d880ee2c" },
+      pages: [{
+        properties: {
+          "Name": taskName,
+          "Status": "To Do",
+          "P/I": taskType,
+          "Priority": priority,
+          "Notes": JSON.stringify([`https://www.notion.so/${voiceNoteId}`]),
+          ...(projectUrl ? { "Project": JSON.stringify([projectUrl]) } : {}),
+        },
+      }],
+    });
+  }
+}
+
 export async function updateNoteTitle(pageId: string, newTitle: string): Promise<void> {
   const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
 

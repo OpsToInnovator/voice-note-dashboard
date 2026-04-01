@@ -141,3 +141,19 @@ export interface TitledNote {
   newTitle: string;
   contentPreview: string;
 }
+
+// --- Voice Note Task Extractor ---
+
+export interface ProcessedVoiceNote {
+  id: string;
+  name: string;
+  tasksCreated: { name: string; type: string; project: string; priority: string }[];
+}
+
+export interface ProcessingResult {
+  notesProcessed: number;
+  tasksCreated: number;
+  notesTitled: number;
+  details: ProcessedVoiceNote[];
+  titledNotes: TitledNote[];
+}
