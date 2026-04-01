@@ -68,6 +68,17 @@ function StandupNav() {
     <div className="flex items-center justify-between mb-8 animate-fade-in delay-1">
       <div className="flex gap-1">
         <Link
+          href="/standup"
+          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
+            location === "/standup"
+              ? "bg-primary/10 text-primary font-medium"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          }`}
+          data-testid="nav-standup"
+        >
+          Standup
+        </Link>
+        <Link
           href="/"
           className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
             location === "/"
@@ -88,17 +99,6 @@ function StandupNav() {
           data-testid="nav-projects"
         >
           Projects
-        </Link>
-        <Link
-          href="/standup"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/standup"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-standup"
-        >
-          Standup
         </Link>
         <Link
           href="/intelligence"
@@ -865,7 +865,10 @@ export default function Standup() {
           />
         </div>
 
-        {/* Due Today */}
+        {/* Proof — evidence of progress */}
+        <ProofPanelSection />
+
+        {/* Today's work */}
         <div className="space-y-4">
           <DueTodaySection tasks={data.dueToday} />
 
@@ -883,9 +886,6 @@ export default function Standup() {
 
           {/* Recent Voice Notes */}
           <RecentVoiceNotesSection notes={data.recentVoiceNotes} />
-
-          {/* Proof Panel */}
-          <ProofPanelSection />
 
           {/* Voice Note Task Extractor */}
           <VoiceNoteProcessorSection />

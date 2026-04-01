@@ -89,6 +89,17 @@ function NavTabs() {
   return (
     <div className="px-3 py-2 border-b border-sidebar-border flex gap-1">
       <Link
+        href="/standup"
+        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
+          location === "/standup"
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        }`}
+        data-testid="nav-standup"
+      >
+        Standup
+      </Link>
+      <Link
         href="/"
         className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
           location === "/"
@@ -109,17 +120,6 @@ function NavTabs() {
         data-testid="nav-projects"
       >
         Projects
-      </Link>
-      <Link
-        href="/standup"
-        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-          location === "/standup"
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
-        data-testid="nav-standup"
-      >
-        Standup
       </Link>
       <Link
         href="/intelligence"
