@@ -989,7 +989,8 @@ export default function Dashboard() {
             {/* Mobile back button */}
             <button
               onClick={() => setSelectedId(null)}
-              className="md:hidden flex items-center gap-1.5 px-4 py-2.5 text-[12px] text-muted-foreground hover:text-foreground border-b border-card-border"
+              className="md:hidden flex items-center gap-1.5 px-4 pb-2.5 text-[12px] text-muted-foreground hover:text-foreground border-b border-card-border bg-background sticky top-0 z-10"
+              style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))" }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
               Back to notes
