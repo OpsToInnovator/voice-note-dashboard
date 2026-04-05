@@ -152,8 +152,7 @@ function VoiceNoteSidebar({
 
   return (
     <div
-      className="flex flex-col h-full bg-sidebar border-r border-sidebar-border"
-      style={{ width: 300 }}
+      className="flex flex-col h-full w-full md:w-[300px] md:min-w-[300px] md:max-w-[300px] bg-sidebar border-r border-sidebar-border"
     >
       {/* Sidebar Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
@@ -967,17 +966,36 @@ export default function Dashboard() {
   useQuery({ queryKey: ["/api/projects"], staleTime: 1800000, enabled: !isLoading });
   useQuery({ queryKey: ["/api/standup"], staleTime: 1800000, enabled: !isLoading });
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
   return (
     <div className="flex h-screen bg-background">
-      <VoiceNoteSidebar
-        notes={notes}
-        isLoading={isLoading}
-        selectedId={selectedId}
-        onSelect={setSelectedId}
-      />
-      <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ overscrollBehavior: "contain" }}>
+      {/* On mobile: show sidebar when no note selected, hide when viewing detail */}
+      <div className={`${
+        selectedId && isMobile ? "hidden" : "flex"
+      } md:flex flex-col h-full`}>
+        <VoiceNoteSidebar
+          notes={notes}
+          isLoading={isLoading}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
+      </div>
+      <div className={`${
+        !selectedId && isMobile ? "hidden" : "flex"
+      } md:flex flex-1 flex-col overflow-y-auto custom-scrollbar`} style={{ overscrollBehavior: "contain" }}>
         {selectedId ? (
-          <VoiceNoteDetailView noteId={selectedId} />
+          <>
+            {/* Mobile back button */}
+            <button
+              onClick={() => setSelectedId(null)}
+              className="md:hidden flex items-center gap-1.5 px-4 py-2.5 text-[12px] text-muted-foreground hover:text-foreground border-b border-card-border"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back to notes
+            </button>
+            <VoiceNoteDetailView noteId={selectedId} />
+          </>
         ) : (
           <EmptyState />
         )}

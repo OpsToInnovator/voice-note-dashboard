@@ -480,8 +480,7 @@ function ProjectsSidebar({
 
   return (
     <div
-      className="flex flex-col h-full bg-sidebar border-r border-sidebar-border"
-      style={{ width: 300 }}
+      className="flex flex-col h-full w-full md:w-[300px] md:min-w-[300px] md:max-w-[300px] bg-sidebar border-r border-sidebar-border"
     >
       {/* Sidebar Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
@@ -688,7 +687,9 @@ export default function Projects() {
 
   return (
     <div className="flex h-screen bg-background">
-      <ProjectsSidebar projects={sortedProjects} isLoading={isLoading} />
+      <div className="hidden md:flex">
+        <ProjectsSidebar projects={sortedProjects} isLoading={isLoading} />
+      </div>
       <div
         className="flex-1 overflow-y-auto custom-scrollbar"
         style={{ overscrollBehavior: "contain" }}
