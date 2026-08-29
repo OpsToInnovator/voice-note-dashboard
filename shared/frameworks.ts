@@ -345,7 +345,9 @@ export function applyCoachToPlan(plan: FrameworkPlan, goalText: string, todayStr
   if (!coach) return { ...plan, coach: null };
 
   let obstaclePlan = plan.obstaclePlan;
-  if (!obstaclePlan && coach.obstacles[0]) {
+  if (feasibilityBlocksExecute(coach) && coach.obstacles[0]) {
+    obstaclePlan = obstacleToIfThen(coach.obstacles[0]);
+  } else if (!obstaclePlan && coach.obstacles[0]) {
     obstaclePlan = obstacleToIfThen(coach.obstacles[0]);
   }
 

@@ -116,7 +116,7 @@ describe("plan contract", () => {
     assert.equal(plan.coach?.feasibility?.verdict?.level, "stop");
     assert.equal(plan.firstAction.nextStep, CHANGE_THE_MODEL_STEP);
     assert.equal(lintActionName(plan.firstAction.nextStep).weak, false);
-    assert.ok(plan.obstaclePlan?.trigger);
+    assert.match(plan.obstaclePlan?.trigger || "", /20 minutes refining/i);
     assert.match(plan.review, /change the model/i);
   });
 });
