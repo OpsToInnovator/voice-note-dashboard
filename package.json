@@ -1,8 +1,26 @@
 {
   "name": "noticing-lens",
   "version": "1.0.0",
+  "description": "A thought operating system: every capture gets a destination. Apache-2.0.",
   "type": "module",
-  "license": "MIT",
+  "license": "Apache-2.0",
+  "keywords": [
+    "thought-operating-system",
+    "notion",
+    "decision-support",
+    "apache-2.0"
+  ],
+  "homepage": "https://github.com/OpsToInnovator/voice-note-dashboard#readme",
+  "bugs": {
+    "url": "https://github.com/OpsToInnovator/voice-note-dashboard/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OpsToInnovator/voice-note-dashboard.git"
+  },
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
@@ -97,8 +115,5 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
-  },
-  "engines": {
-    "node": "22.x"
   }
 }

@@ -20,7 +20,7 @@ import {
   getTasksDbId,
   getTitle,
   queryDatabasePages,
-  TASKS_ACTIVE_VIEW_ID,
+  tasksActiveCliViewUrl,
 } from "./notion";
 
 const RESURFACE_CACHE_TTL = 15 * 60 * 1000; // 15 minutes — return should stay fresh
@@ -148,8 +148,9 @@ function fetchNotesCli(): RawCapture[] {
 
 function fetchTasksCli(): RawCapture[] {
   try {
-    const viewUrl = `https://www.notion.so/${getTasksDbId()}?v=${TASKS_ACTIVE_VIEW_ID}`;
-    const result = callNotionCli("notion-query-database-view", { view_url: viewUrl });
+    const result = callNotionCli("notion-query-database-view", {
+      view_url: tasksActiveCliViewUrl(),
+    });
     return (result.results || []).map((t: any) => {
       const created = t.Created || "";
       return {
