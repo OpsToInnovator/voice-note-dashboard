@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-8A7CFF.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-22.x-4FE3FF.svg)](package.json)
 
-Noticing Lens is the **open thought operating system** from [ApexForm Life](https://apexformlife.com). Public, forkable, and licensed so the decision process can be inspected and extended — while the house brand, and the hosted products people buy, stay ApexForm Life’s.
+Noticing Lens is the **open thought operating system** from [ApexForm Life](https://apexformlife.com) — the **full app**, not a stripped SDK. Think, Goals, Standup, Notion, Goal Coach, and the chrome are in this repository, Apache-2.0, so operators can run it, fork it, and stress-test the gates. What stays closed is what people **buy**: AFOS™, Paradigm, and services.
 
 > The system doesn’t tell you what to think. It determines what should happen next to what you’re thinking.
 
@@ -13,7 +13,7 @@ Trust: *I trust the system to govern the process by which I decide — not to de
 
 This is **not** a notes app, task manager, journal, or chatbot. Every captured thought gets a destination: **DELETE · STORE · EXPLORE · DECIDE · EXECUTE**.
 
-**This repo is the inspectable engine.** [ApexForm Life](https://apexformlife.com) sells and operates the same discipline as hosted products:
+**This is the full Noticing Lens app.** [ApexForm Life](https://apexformlife.com) sells and operates a different layer of the same discipline:
 
 | Product | Who | Status |
 | --- | --- | --- |
@@ -21,9 +21,9 @@ This is **not** a notes app, task manager, journal, or chatbot. Every captured t
 | [Paradigm](https://apexformlife.com) | Individuals — longitudinal behavioural intelligence | iOS, launch list |
 | [Consulting & coaching](https://apexformlife.com) | Teams and leaders | Live |
 
-If you write about, fork, or demo this engine, name ApexForm Life and link [apexformlife.com](https://apexformlife.com). That credit is how the open work funds the products. See [TRADEMARKS.md](TRADEMARKS.md).
+If you write about, fork, or demo this app, name ApexForm Life and link [apexformlife.com](https://apexformlife.com). That credit is how the open work funds the products. See [TRADEMARKS.md](TRADEMARKS.md).
 
-## Try the engine in one command
+## Try the app in one command
 
 No Notion, no OpenAI:
 
@@ -63,9 +63,9 @@ Code owns gates, routing, lint, and maths. Models fill interpretation and canvas
 npm test
 ```
 
-## Why this is open
+## Why the full app is open
 
-ApexForm Life’s commercial work (AFOS™, Paradigm, consulting) depends on trust in *how* a thought is routed — not on a louder chatbot. Opening the engine lets operators, researchers, and builders stress-test the gates in public. That scrutiny is a credibility asset for the hosted products.
+ApexForm Life’s commercial work (AFOS™, Paradigm, consulting) depends on trust in *how* a thought is routed — not on a louder chatbot. Publishing the whole personal app — screens, fixtures, tests — lets operators, researchers, and builders run the same thing Jake runs, then buy the hosted products when they need organisation-scale memory (AFOS™) or longitudinal iOS (Paradigm).
 
 Forks, papers, and talks should say **ApexForm Life**. Community copies should keep the preferred credit. Competing hosted products should pick their own product name and still link back. Details: [TRADEMARKS.md](TRADEMARKS.md).
 
