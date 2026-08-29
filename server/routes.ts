@@ -5,6 +5,7 @@ import { generateIntelligence, autoTitleNotes, processVoiceNotes, getUnprocessed
 import { getDailyResurface, runResurfaceJob } from "./resurface";
 import { clarifyInbox } from "./actionFrame";
 import { applyFramework } from "./frameworks";
+import { processThought, thoughtCatalog } from "./thoughtOs";
 import { DEFAULT_BIG_GOAL_FRAMEWORK, FRAMEWORKS, GOAL_STACK, type FrameworkId } from "../shared/frameworks";
 import type { DailyStandup } from "../shared/schema";
 
@@ -151,6 +152,24 @@ export async function registerRoutes(
       console.error("Error applying framework:", err);
       const status = /paste a goal/i.test(err.message || "") ? 400 : 500;
       res.status(status).json({ error: "Failed to apply framework", message: err.message });
+    }
+  });
+
+  app.get("/api/thoughts/model", (_req, res) => {
+    res.json(thoughtCatalog());
+  });
+
+  app.post("/api/thoughts/process", async (req, res) => {
+    try {
+      const content = typeof req.body?.content === "string" ? req.body.content : "";
+      const confirmedMeaningId =
+        typeof req.body?.confirmedMeaningId === "string" ? req.body.confirmedMeaningId : null;
+      const result = await processThought(content, confirmedMeaningId);
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error processing thought:", err);
+      const status = /capture a thought/i.test(err.message || "") ? 400 : 500;
+      res.status(status).json({ error: "Failed to process thought", message: err.message });
     }
   });
 

@@ -9,7 +9,7 @@
     "start": "node dist/index.cjs",
     "resurface": "tsx server/resurfaceJob.ts",
     "resurface:prod": "node dist/resurface.cjs",
-    "test": "tsx --test shared/resurface.test.ts shared/actionFrame.test.ts shared/frameworks.test.ts",
+    "test": "tsx --test shared/resurface.test.ts shared/actionFrame.test.ts shared/frameworks.test.ts shared/thoughtOs.test.ts",
     "check": "tsc"
   },
   "dependencies": {

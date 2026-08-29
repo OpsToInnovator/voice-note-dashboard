@@ -517,6 +517,17 @@ function ProjectsSidebar({
       {/* Nav tabs */}
       <div className="px-3 py-2 border-b border-sidebar-border flex gap-1 flex-wrap">
         <Link
+          href="/think"
+          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
+            location === "/think"
+              ? "bg-primary/10 text-primary font-medium"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          }`}
+          data-testid="nav-think"
+        >
+          Think
+        </Link>
+        <Link
           href="/standup"
           className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
             location === "/standup"

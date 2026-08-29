@@ -162,6 +162,7 @@ export type {
   FrameworkMeta,
   FrameworkPlan,
 } from "./frameworks";
+export type { ThoughtRecord, ThoughtDestination, DecisionTier } from "./thoughtOs";
 
 export interface TitledNote {
   id: string;
