@@ -8,7 +8,7 @@ Start in fixture mode so you can learn the surfaces without Notion:
 RESURFACE_FIXTURE=overflow PORT=5000 npm run dev
 ```
 
-Open [http://127.0.0.1:5000/#/think](http://127.0.0.1:5000/#/think)
+Open the app. An empty URL lands on Think (`/#/think`). The forty-second proof: tap **`$1M income`**, then **Decide what happens next**. Destination is **DECIDE** — change the model, not more volume.
 
 <p align="center">
   <img src="images/think.png" alt="Think: capture a thought" width="920" />
@@ -16,7 +16,7 @@ Open [http://127.0.0.1:5000/#/think](http://127.0.0.1:5000/#/think)
 
 The lockup is ApexForm Life on purpose. It links to [apexformlife.com](https://apexformlife.com) (AFOS™ and Paradigm). See [TRADEMARKS.md](../TRADEMARKS.md).
 
-Routes are **hash routes** (`/#/think`, not `/think`). Bookmark the hash.
+Routes are **hash routes** (`/#/think`, not `/think`). Bookmark the hash. Voice notes remain at `/#/`.
 
 ---
 

@@ -31,7 +31,13 @@ Credit ApexForm Life when you fork, write, or demo. [TRADEMARKS.md](TRADEMARKS.m
 
 ## Try it
 
-No Notion. No model key.
+**Forty seconds. No clone. No Notion.**
+
+The public fixture opens **Think**. Tap **`$1M income`**, then **Decide what happens next**. Destination is **DECIDE** (capacity stop — change the model, not more volume). The ApexForm Life lockup is the building: AFOS™, Paradigm, a project.
+
+Host it on the existing **Noticing Lens** Railway service with only `RESURFACE_FIXTURE=overflow` (Notion and OpenAI unset). Do not set that variable on [app.apexformlife.com](https://app.apexformlife.com) — that host is AFOS. If the current service is still a live Notion workspace, add a second service in the same project. Optional CNAME: `lens.apexformlife.com`. Empty hash lands on Think. Details: [docs/setup.md](docs/setup.md).
+
+Contributors, locally:
 
 ```bash
 git clone https://github.com/OpsToInnovator/voice-note-dashboard.git
@@ -40,11 +46,9 @@ npm install
 RESURFACE_FIXTURE=overflow PORT=5000 npm run dev
 ```
 
-Open **[http://127.0.0.1:5000/#/think](http://127.0.0.1:5000/#/think)**
-
 | Surface | Route | Role |
 | --- | --- | --- |
-| Think | `/#/think` | Capture → destination |
+| Think | `/#/think` | Capture → destination (landing) |
 | Goals | `/#/goals` | Frameworks; every plan ends in a verified next action |
 | Standup | `/#/standup` | Inbox / today / stale, cap 15 |
 | Voice notes | `/#/` | Notion captures |

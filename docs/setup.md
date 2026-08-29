@@ -1,6 +1,27 @@
 # Setup
 
-## One-command try (no accounts)
+High-end visitors open one URL. They do not clone. The public door is a **fixture Railway service**: Think is the landing hash, `$1M` → **DECIDE**, lockup still goes to [apexformlife.com](https://apexformlife.com).
+
+## Public fixture (Railway)
+
+On the existing **Noticing Lens** Railway service that deploys this repo:
+
+| Variable | Value |
+| --- | --- |
+| `RESURFACE_FIXTURE` | `overflow` |
+| `PORT` | Railway-provided (do not override) |
+| `NOTION_*` / `OPENAI_API_KEY` | **unset** |
+| `PUBLIC_APP_URL` | Optional. This host’s origin for OG tags |
+
+Do **not** bake fixture into `startCommand`. [railway.json](../railway.json) already builds and runs `node dist/index.cjs`.
+
+Do **not** set these variables on [app.apexformlife.com](https://app.apexformlife.com) — that host is **AFOS**.
+
+If the existing Lens service is still the live Notion operator deploy, add a **second** service in the same project (`noticing-lens-demo`) with only `RESURFACE_FIXTURE=overflow`. Share that URL. Optional DNS: CNAME `lens.apexformlife.com` → the demo service.
+
+An empty path opens Think. The forty-second proof: tap **`$1M income`**, then **Decide what happens next**.
+
+## Local try (contributors)
 
 ```bash
 git clone https://github.com/OpsToInnovator/voice-note-dashboard.git
@@ -9,7 +30,7 @@ npm install
 RESURFACE_FIXTURE=overflow PORT=5000 npm run dev
 ```
 
-Open [http://127.0.0.1:5000/#/think](http://127.0.0.1:5000/#/think)
+An empty URL lands on Think (`/#/think`). Voice notes stay at `/#/`.
 
 | `RESURFACE_FIXTURE` | What you see |
 | --- | --- |
@@ -24,8 +45,9 @@ Copy [`.env.example`](../.env.example) to `.env`. Never commit `.env`.
 
 | Variable | Required when |
 | --- | --- |
-| `RESURFACE_FIXTURE` | Exploring without Notion |
+| `RESURFACE_FIXTURE` | Exploring or hosting without Notion |
 | `PORT` | Always on PaaS; optional locally (5000) |
+| `PUBLIC_APP_URL` | Optional. Public origin of this host (OG tags). Lockup still goes to apexformlife.com |
 | `NOTION_API_KEY` | Live workspace |
 | `NOTION_NOTES_DB_ID` | Live notes / voice notes |
 | `NOTION_TASKS_DB_ID` | Live tasks / standup / clarify |
@@ -65,6 +87,8 @@ npm run build
 NODE_ENV=production node dist/index.cjs
 ```
 
-Daily resurface (example 07:00 Australia/Perth): `npm run resurface` in development, `npm run resurface:prod` after build.
+Public demo: fixture only (see above). A Notion-connected operator deploy is a different service.
+
+Daily resurface (example 07:00 Australia/Perth): `npm run resurface` in development, `npm run resurface:prod` after build. Not used on the fixture demo.
 
 Community hosts: keep the ApexForm Life credit and a link to [apexformlife.com](https://apexformlife.com). Do not present a self-host as AFOS™ or Paradigm. [TRADEMARKS.md](../TRADEMARKS.md).

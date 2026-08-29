@@ -24,7 +24,7 @@ npm install
 RESURFACE_FIXTURE=overflow PORT=5000 npm run dev
 ```
 
-Open http://127.0.0.1:5000/#/think
+An empty URL lands on Think (`/#/think`).
 
 Fixture mode does not need Notion or a model key. Use it for UI and gate work.
 

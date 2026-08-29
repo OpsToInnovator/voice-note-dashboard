@@ -56,4 +56,4 @@ Nothing is stored on the app server as a database. Notion is the system of recor
 
 ## HTTP
 
-The server binds `0.0.0.0:$PORT` (default 5000 in development). API and client are the same origin. Hash routing is client-side (`wouter` + `useHashLocation`).
+The server binds `0.0.0.0:$PORT` (default 5000 in development). API and client are the same origin. Hash routing is client-side (`wouter` + `useHashLocation`). An empty hash lands on **Think** (`/#/think`). Voice notes stay at `/#/`.
