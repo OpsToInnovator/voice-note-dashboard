@@ -2,7 +2,12 @@ import OpenAI from "openai";
 import type { IntelligenceContext, IntelligenceReport, TitledNote, ProcessedVoiceNote, ProcessingResult, ProofPanel } from "../shared/schema";
 import { findUntitledNotes, updateNoteTitle, getUnprocessedVoiceNotes, getVoiceNoteContent, getProjectLookup, createTaskInNotion } from "./notion";
 
-const client = new OpenAI();
+let client: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!client) client = new OpenAI();
+  return client;
+}
 
 // Cache for LLM response (10 min)
 let cachedReport: { data: IntelligenceReport; ts: number } | null = null;
@@ -104,7 +109,7 @@ Respond ONLY with a JSON object, no markdown, no code blocks:
   "summary": "One sentence summary of the overall recommendation"
 }`;
 
-  const response = await client.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     max_tokens: 4096,
     messages: [{ role: "user", content: prompt }],
@@ -214,7 +219,7 @@ If the voice note has NO actionable tasks (it's purely a reflection or observati
 Respond ONLY with JSON:
 { "tasks": [{ "name": "...", "type": "Process|Immersive", "project": "Exact Project Name|NONE", "priority": "High|Medium|Low" }] }`;
 
-      const response = await client.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o",
         max_tokens: 1024,
         messages: [{ role: "user", content: prompt }],
@@ -296,7 +301,7 @@ export async function autoTitleNotes(): Promise<TitledNote[]> {
     const batch = untitled.slice(i, i + 3);
     const titlePromises = batch.map(async (note) => {
       try {
-        const response = await client.chat.completions.create({
+        const response = await getOpenAI().chat.completions.create({
           model: "gpt-4o",
           max_tokens: 100,
           messages: [
@@ -383,7 +388,7 @@ export async function generateProofPanel(): Promise<ProofPanel> {
     .map(t => `- ${t.name} (${t.type || "unclassified"}, project: ${t.project || "none"})`)
     .join("\n");
 
-  const response = await client.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     max_tokens: 2048,
     messages: [
