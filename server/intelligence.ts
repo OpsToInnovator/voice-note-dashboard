@@ -10,12 +10,11 @@ function getOpenAI(): OpenAI {
   return client;
 }
 
-// Cache for LLM response (10 min)
 let cachedReport: { data: IntelligenceReport; ts: number } | null = null;
-const LLM_CACHE_TTL = 1_800_000; // 30 minutes
+const REPORT_CACHE_TTL = 1_800_000; // 30 minutes
 
 export async function generateIntelligence(context: IntelligenceContext): Promise<IntelligenceReport> {
-  if (cachedReport && Date.now() - cachedReport.ts < LLM_CACHE_TTL) {
+  if (cachedReport && Date.now() - cachedReport.ts < REPORT_CACHE_TTL) {
     return cachedReport.data;
   }
 
@@ -45,16 +44,13 @@ export async function generateIntelligence(context: IntelligenceContext): Promis
     ? context.voiceNoteThemes.map(v => `- "${v.name}" (${v.date}): ${v.summary || "No summary available"}`).join("\n")
     : "No recent voice notes.";
 
-  const prompt = `You are a personal intelligence advisor analyzing a professional's second brain data. Your role is to synthesize patterns across goals, projects, tasks, and voice notes to produce ONE clear, actionable recommendation for what to focus on next.
+  const prompt = `Synthesize this operator's workspace into ONE clear recommendation for what to focus on next.
+Do not converse. Fill the JSON schema only. Code elsewhere owns destinations, tiers, and next-action lint.
 
-The user is Jake, based in Western Australia. He's a licensed electrician transitioning into a Business Improvement Principal role in the mining industry. He values clarity, efficiency, and reducing anxiety through organisation. He uses Notion as his second brain with the Ultimate Brain template.
-
-Here is his current data:
-
-GOALS (what he's working towards):
+GOALS:
 ${goalsSection}
 
-PROJECTS (active initiatives with health scores):
+PROJECTS:
 ${projectsSection}
 
 RECENT TASKS (last 14 days):
@@ -64,35 +60,33 @@ ${completedSection}
 In Progress:
 ${inProgressSection}
 
-TODAY'S SITUATION:
+TODAY:
 - ${context.todayDueCount} tasks due today
 - ${context.overdueCount} overdue tasks
 - ${context.completedYesterdayCount} completed yesterday
 
-RECENT VOICE NOTE THEMES (what's on his mind):
+RECENT VOICE NOTE THEMES:
 ${voiceNotesSection}
 
-Based on ALL of this data, provide:
+Fill:
 
-1. PRIMARY FOCUS: The ONE thing Jake should focus on today and why. Be specific — name the exact project, task, or action. Explain how it connects to his goals.
+1. PRIMARY FOCUS: The ONE thing to focus on today and why. Name the exact project, task, or action. Connect it to a goal when one exists.
 
-2. PATTERN INSIGHT: One non-obvious pattern you see across his data — something connecting different areas he might not have noticed. For example, if multiple voice notes and tasks point to the same underlying theme.
+2. PATTERN INSIGHT: One non-obvious pattern across the data — something connecting different areas.
 
-3. RISK FLAG: The most important thing at risk of slipping — a project losing momentum, a goal with no recent activity, or overdue items that compound.
+3. RISK FLAG: The most important thing at risk of slipping.
 
-4. MOMENTUM WIN: Something he's done well recently that he should build on. Name the specific accomplishment and how to leverage it.
+4. MOMENTUM WIN: Something completed recently worth building on. Name the specific accomplishment.
 
-5. WEEKLY PRIORITY: Looking at his goals and project health, what should be his #1 priority this week beyond today? Name one observable next action (verb + object, 10–30 minutes) and whether to keep, improve, delegate, automate, or stop the current approach.
+5. WEEKLY PRIORITY: #1 priority this week beyond today. One observable next action (verb + object, 10–30 minutes) and whether to keep, improve, delegate, automate, or stop the current approach.
 
-6. SYSTEM AUDIT: Act as a strategic advisor auditing the structural integrity of Jake's second brain. For EACH project and goal, evaluate honestly:
-   - Is this actually a project (defined outcome, concrete tasks, timeline)? Or is it an idea/aspiration disguised as a project?
-   - Should any projects be demoted to goals (aspirational, no concrete next steps)?
-   - Should any be demoted to just a note or archived (stale, no tasks, no momentum)?
-   - Should any projects be merged (overlapping scope, same theme)?
-   - Are any goals disconnected from projects (no linked projects = no path to achievement)?
-   - Are there tasks floating without a project that should be grouped?
-   Be direct and honest. Jake wants accountability, not validation. If something isn't a real project, say so.
-   Provide a summary observation and then specific items with recommendations.
+6. SYSTEM AUDIT: For EACH project and goal:
+   - Is this a project (defined outcome, concrete tasks, timeline) or an aspiration labelled as one?
+   - Demote to goal / note / archive if it has no path.
+   - Merge when scope overlaps.
+   - Flag goals with no linked projects.
+   Direct. If something is not a real project, say so.
+   Provide a summary and specific items.
 
 Respond ONLY with a JSON object, no markdown, no code blocks:
 {
@@ -102,7 +96,7 @@ Respond ONLY with a JSON object, no markdown, no code blocks:
   "momentumWin": { "achievement": "...", "leverage": "..." },
   "weeklyPriority": { "focus": "...", "reasoning": "..." },
   "systemAudit": {
-    "summary": "One paragraph honest assessment of the structural health of Jake's system",
+    "summary": "One paragraph on the structural health of the system",
     "items": [
       { "name": "Project or Goal name", "currentType": "Project", "recommendation": "keep|demote_to_goal|demote_to_note|merge|archive", "reasoning": "Why", "actionRequired": "Specific action to take" }
     ]
@@ -136,7 +130,7 @@ Respond ONLY with a JSON object, no markdown, no code blocks:
     parsed = JSON.parse(jsonStr);
   } catch {
     parsed = {
-      primaryFocus: { title: "Review your current tasks", reasoning: "Unable to parse AI response. Check your data.", connectedGoal: "" },
+      primaryFocus: { title: "Review your current tasks", reasoning: "Unable to parse the interpretation. Check your data.", connectedGoal: "" },
       patternInsight: { observation: "Analysis unavailable", evidence: [] },
       riskFlag: { item: "Analysis unavailable", reason: "", suggestedAction: "" },
       momentumWin: { achievement: "Analysis unavailable", leverage: "" },
@@ -283,7 +277,7 @@ export async function autoTitleNotes(): Promise<TitledNote[]> {
           messages: [
             {
               role: "system",
-              content: `You generate clear, descriptive titles for notes. Rules:
+              content: `Title rules:
 - Maximum 8 words
 - Must clearly convey the note's core intent or subject
 - Use plain language, no jargon unless the content is technical
@@ -370,7 +364,7 @@ export async function generateProofPanel(): Promise<ProofPanel> {
     messages: [
       {
         role: "system",
-        content: `You analyse completed tasks to build proof of identity. Each task is evidence of who the person is becoming. Be specific, grounded, and psychologically honest.
+        content: `Assign identity domains from completed tasks. Each task is evidence of a pattern of work. Be specific and grounded.
 
 IDENTITY DOMAINS (assign exactly one per task):
 - Builder: Creating systems, tools, structures, apps, frameworks
@@ -413,17 +407,17 @@ Respond ONLY with JSON:
     parsed = { tasks: [], patternSignal: "Unable to analyse. Review completed tasks manually." };
   }
 
-  // Merge LLM analysis with raw task data
+  // Merge filled fields with raw task data
   const proofTasks: ProofTask[] = completedTasks.map((t, i) => {
-    const llmTask = (parsed.tasks || [])[i] || {};
+    const filled = (parsed.tasks || [])[i] || {};
     return {
       name: t.name,
       type: t.type,
       project: t.project,
       completedDate: t.completedDate,
-      identityDomain: llmTask.identityDomain || "Organiser",
-      whatItMoved: llmTask.whatItMoved || "",
-      identityReinforced: llmTask.identityReinforced || "",
+      identityDomain: filled.identityDomain || "Organiser",
+      whatItMoved: filled.whatItMoved || "",
+      identityReinforced: filled.identityReinforced || "",
     };
   });
 
