@@ -26,13 +26,81 @@ function getNotionKey(): string {
   return key;
 }
 
-// Database IDs (set via env or fallback to Jake's workspace)
+function requireDbId(name: string): string {
+  const id = process.env[name]?.trim();
+  if (!id) {
+    throw new Error(
+      `${name} is not set. Copy .env.example to .env and add your Notion database IDs, or run with RESURFACE_FIXTURE=overflow to explore without Notion.`,
+    );
+  }
+  return id;
+}
+
+function optionalEnv(name: string): string {
+  return process.env[name]?.trim() || "";
+}
+
 export function getNotesDbId(): string {
-  return process.env.NOTION_NOTES_DB_ID || "592d777bf7438256ad348129ae94a20d";
+  return requireDbId("NOTION_NOTES_DB_ID");
 }
 
 export function getTasksDbId(): string {
-  return process.env.NOTION_TASKS_DB_ID || "6bfd777bf7438394a98c01400b00f442";
+  return requireDbId("NOTION_TASKS_DB_ID");
+}
+
+export function getProjectsDbId(): string {
+  return requireDbId("NOTION_PROJECTS_DB_ID");
+}
+
+/** Optional Goals database — Intelligence skips goals when unset. */
+export function getGoalsDbId(): string {
+  return optionalEnv("NOTION_GOALS_DB_ID");
+}
+
+export function getProjectsViewId(): string {
+  return optionalEnv("NOTION_PROJECTS_VIEW_ID");
+}
+
+export function getTasksActiveViewId(): string {
+  return optionalEnv("NOTION_TASKS_ACTIVE_VIEW_ID");
+}
+
+function getTasksCompleteViewId(): string {
+  return optionalEnv("NOTION_TASKS_COMPLETE_VIEW_ID");
+}
+
+function getNotesViewId(): string {
+  return optionalEnv("NOTION_NOTES_VIEW_ID");
+}
+
+function getGoalsViewId(): string {
+  return optionalEnv("NOTION_GOALS_VIEW_ID");
+}
+
+function getTasksDataSourceId(): string {
+  return optionalEnv("NOTION_TASKS_DATA_SOURCE_ID");
+}
+
+function databaseUrl(databaseId: string, viewId = ""): string {
+  return viewId
+    ? `https://www.notion.so/${databaseId}?v=${viewId}`
+    : `https://www.notion.so/${databaseId}`;
+}
+
+function notesCliViewUrl(): string {
+  const viewId = getNotesViewId();
+  return viewId ? `view://${viewId}` : databaseUrl(getNotesDbId());
+}
+
+export function tasksActiveCliViewUrl(): string {
+  return databaseUrl(getTasksDbId(), getTasksActiveViewId());
+}
+
+function taskViewUrls(): string[] {
+  const db = getTasksDbId();
+  const ids = [getTasksActiveViewId(), getTasksCompleteViewId()].filter(Boolean);
+  if (ids.length === 0) return [databaseUrl(db)];
+  return ids.map((id) => databaseUrl(db, id));
 }
 
 export async function notionFetch(endpoint: string, options: RequestInit = {}): Promise<any> {
@@ -670,12 +738,6 @@ export async function getTasksForVoiceNote(voiceNoteId: string): Promise<TaskIte
 
 // --- Project Health Monitor ---
 
-const PROJECTS_DB_ID = "f7cd777bf74383818c5c8152d47dbf1f";
-const PROJECTS_VIEW_ID = "c46d777b-f743-83ca-8031-88dcb99b88a3";
-const TASKS_DB_ID = "6bfd777bf7438394a98c01400b00f442";
-export const TASKS_ACTIVE_VIEW_ID = "b57d777b-f743-8353-9302-084e5c538a60";
-const TASKS_COMPLETE_VIEW_ID = "0a8d777b-f743-83e8-b14f-888fe9865b80";
-
 export function callNotionCli(toolName: string, args: Record<string, unknown>): any {
   const params = JSON.stringify({ source_id: "notion_mcp", tool_name: toolName, arguments: args });
   const escaped = params.replace(/'/g, "'\\'");
@@ -693,10 +755,8 @@ export function extractIdFromUrl(url: string): string {
 function fetchAllTasksViaCli(): Map<string, ProjectTaskSummary[]> {
   const tasksByProjectUrl = new Map<string, ProjectTaskSummary[]>();
 
-  const views = [TASKS_ACTIVE_VIEW_ID, TASKS_COMPLETE_VIEW_ID];
-  for (const viewId of views) {
+  for (const viewUrl of taskViewUrls()) {
     try {
-      const viewUrl = `https://www.notion.so/${TASKS_DB_ID}?v=${viewId}`;
       const result = callNotionCli("notion-query-database-view", { view_url: viewUrl });
       const tasks = result.results || [];
 
@@ -725,7 +785,7 @@ function fetchAllTasksViaCli(): Map<string, ProjectTaskSummary[]> {
         }
       }
     } catch (err) {
-      console.error(`Failed to fetch tasks view ${viewId}:`, err);
+      console.error(`Failed to fetch tasks view ${viewUrl}:`, err);
     }
   }
 
@@ -772,7 +832,7 @@ export async function listProjects(): Promise<ProjectHealth[]> {
 
     if (hasApiKey) {
       // Direct Notion API path
-      const dbId = formatUuid(PROJECTS_DB_ID);
+      const dbId = formatUuid(getProjectsDbId());
       let allResults: any[] = [];
       let startCursor: string | undefined;
 
@@ -852,7 +912,7 @@ export async function listProjects(): Promise<ProjectHealth[]> {
       }
     } else {
       // CLI path: 3 calls total (projects + active tasks + complete tasks)
-      const viewUrl = `https://www.notion.so/${PROJECTS_DB_ID}?v=${PROJECTS_VIEW_ID}`;
+      const viewUrl = databaseUrl(getProjectsDbId(), getProjectsViewId());
       const projResult = callNotionCli("notion-query-database-view", { view_url: viewUrl });
       const rawProjects = projResult.results || [];
 
@@ -956,7 +1016,7 @@ export function getAWSTDates() {
 
 async function getDailyStandupDirect(): Promise<DailyStandup> {
   const { todayStr, yesterdayStr, greeting, dateLabel, awstNow } = getAWSTDates();
-  const tasksDbId = formatUuid(TASKS_DB_ID);
+  const tasksDbId = formatUuid(getTasksDbId());
 
   // 1. Tasks completed yesterday
   const completedRes = await notionFetch(`/databases/${tasksDbId}/query`, {
@@ -1082,20 +1142,13 @@ async function getDailyStandupDirect(): Promise<DailyStandup> {
 function getDailyStandupCli(): DailyStandup {
   const { todayStr, yesterdayStr, greeting, dateLabel, awstNow } = getAWSTDates();
 
-  // Fetch tasks from both active and complete views
-  const views = [
-    { id: TASKS_ACTIVE_VIEW_ID, label: "active" },
-    { id: TASKS_COMPLETE_VIEW_ID, label: "complete" },
-  ];
-
   let allTasks: any[] = [];
-  for (const view of views) {
+  for (const viewUrl of taskViewUrls()) {
     try {
-      const viewUrl = `https://www.notion.so/${TASKS_DB_ID}?v=${view.id}`;
       const result = callNotionCli("notion-query-database-view", { view_url: viewUrl });
       allTasks = allTasks.concat(result.results || []);
     } catch (err) {
-      console.error(`Failed to fetch tasks view ${view.id}:`, err);
+      console.error(`Failed to fetch tasks view ${viewUrl}:`, err);
     }
   }
 
@@ -1234,7 +1287,7 @@ export async function getDailyStandup(): Promise<DailyStandup> {
 
     // Voice notes via CLI (listVoiceNotes uses direct API only)
     try {
-      const notesDbId = "592d777bf7438256ad348129ae94a20d";
+      const notesDbId = getNotesDbId();
       const notesViewUrl = `https://www.notion.so/${notesDbId}`;
       const notesResult = callNotionCli("notion-query-database-view", { view_url: notesViewUrl });
       const rawNotes = notesResult.results || [];
@@ -1263,20 +1316,19 @@ export async function getDailyStandup(): Promise<DailyStandup> {
 
 // --- Intelligence Engine: Data Gathering ---
 
-const GOALS_DB_ID = "a5fd777bf743836a941481f7088746e7";
-const GOALS_VIEW_ID = "509d777b-f743-8267-a27d-88551b425458";
 const INTELLIGENCE_CACHE_TTL = 1_800_000; // 30 minutes
 
 export async function gatherIntelligenceContext(): Promise<IntelligenceContext> {
   return cached("intelligence-context", async () => {
     const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
 
-    // 1. Goals
+    // 1. Goals (optional — skip when NOTION_GOALS_DB_ID is unset)
     let goals: IntelligenceContext["goals"] = [];
+    const goalsDbId = getGoalsDbId();
+    const goalsViewId = getGoalsViewId();
     try {
-      if (hasApiKey) {
-        const goalsDbId = formatUuid(GOALS_DB_ID);
-        const goalsRes = await notionFetch(`/databases/${goalsDbId}/query`, {
+      if (hasApiKey && goalsDbId) {
+        const goalsRes = await notionFetch(`/databases/${formatUuid(goalsDbId)}/query`, {
           method: "POST",
           body: JSON.stringify({
             filter: { property: "Archived", checkbox: { equals: false } },
@@ -1290,10 +1342,10 @@ export async function gatherIntelligenceContext(): Promise<IntelligenceContext> 
             projectCount: getRelationIds(props, "Projects").length,
           };
         });
-      } else {
+      } else if (!hasApiKey && (goalsDbId || goalsViewId)) {
         const result = callNotionCli("notion-query-database-view", {
-          database_id: GOALS_DB_ID,
-          view_url: `view://${GOALS_VIEW_ID}`,
+          ...(goalsDbId ? { database_id: goalsDbId } : {}),
+          view_url: goalsViewId ? `view://${goalsViewId}` : databaseUrl(goalsDbId),
         });
         goals = (result.results || []).map((g: any) => ({
           name: g.Name || "",
@@ -1321,7 +1373,7 @@ export async function gatherIntelligenceContext(): Promise<IntelligenceContext> 
     try {
       const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
       if (hasApiKey) {
-        const tasksDbId = formatUuid(TASKS_DB_ID);
+        const tasksDbId = formatUuid(getTasksDbId());
         const tasksRes = await notionFetch(`/databases/${tasksDbId}/query`, {
           method: "POST",
           body: JSON.stringify({
@@ -1344,11 +1396,8 @@ export async function gatherIntelligenceContext(): Promise<IntelligenceContext> 
           };
         });
       } else {
-        // CLI path: use existing task views
-        const views = [TASKS_ACTIVE_VIEW_ID, TASKS_COMPLETE_VIEW_ID];
-        for (const viewId of views) {
+        for (const viewUrl of taskViewUrls()) {
           try {
-            const viewUrl = `https://www.notion.so/${TASKS_DB_ID}?v=${viewId}`;
             const result = callNotionCli("notion-query-database-view", { view_url: viewUrl });
             for (const t of result.results || []) {
               const completed = t["date:Completed:start"] || null;
@@ -1380,7 +1429,7 @@ export async function gatherIntelligenceContext(): Promise<IntelligenceContext> 
       } else {
         // CLI path: query notes DB
         try {
-          const notesDbId = "592d777bf7438256ad348129ae94a20d";
+          const notesDbId = getNotesDbId();
           const notesViewUrl = `https://www.notion.so/${notesDbId}`;
           const notesResult = callNotionCli("notion-query-database-view", { view_url: notesViewUrl });
           allNotes = (notesResult.results || [])
@@ -1468,7 +1517,7 @@ export async function classifyUnclassifiedTasks(): Promise<ClassifiedTask[]> {
 
   if (hasApiKey) {
     // Direct API: query tasks where P/I is empty
-    const tasksDbId = formatUuid(TASKS_DB_ID);
+    const tasksDbId = formatUuid(getTasksDbId());
     const res = await notionFetch(`/databases/${tasksDbId}/query`, {
       method: "POST",
       body: JSON.stringify({
@@ -1504,8 +1553,9 @@ export async function classifyUnclassifiedTasks(): Promise<ClassifiedTask[]> {
   } else {
     // CLI path: get tasks from active view, find unclassified, update via CLI
     try {
-      const viewUrl = `https://www.notion.so/${TASKS_DB_ID}?v=${TASKS_ACTIVE_VIEW_ID}`;
-      const result = callNotionCli("notion-query-database-view", { view_url: viewUrl });
+      const result = callNotionCli("notion-query-database-view", {
+        view_url: tasksActiveCliViewUrl(),
+      });
       const tasks = result.results || [];
 
       for (const t of tasks) {
@@ -1545,7 +1595,7 @@ export async function findUntitledNotes(): Promise<{ id: string; title: string; 
   const results: { id: string; title: string; content: string }[] = [];
 
   if (hasApiKey) {
-    const NOTES_DB = "592d777bf7438256ad348129ae94a20d";
+    const NOTES_DB = getNotesDbId();
     const dbId = formatUuid(NOTES_DB);
     const response = await notionFetch(`/databases/${dbId}/query`, {
       method: "POST",
@@ -1573,8 +1623,8 @@ export async function findUntitledNotes(): Promise<{ id: string; title: string; 
     // CLI path
     try {
       const viewResult = callNotionCli("notion-query-database-view", {
-        database_id: "592d777bf7438256ad348129ae94a20d",
-        view_url: "view://727d777b-f743-834f-ba73-8817f4c83cf4",
+        database_id: getNotesDbId(),
+        view_url: notesCliViewUrl(),
         page_size: 100,
       });
       for (const note of viewResult.results || []) {
@@ -1620,8 +1670,8 @@ export async function getUnprocessedVoiceNotes(): Promise<{ id: string; name: st
   } else {
     try {
       const viewResult = callNotionCli("notion-query-database-view", {
-        database_id: "592d777bf7438256ad348129ae94a20d",
-        view_url: "view://727d777b-f743-834f-ba73-8817f4c83cf4",
+        database_id: getNotesDbId(),
+        view_url: notesCliViewUrl(),
         filter: '"Type" = "Voice Note"',
         page_size: 50,
       });
@@ -1671,7 +1721,7 @@ export async function getProjectLookup(): Promise<Map<string, { id: string; url:
   const lookup = new Map<string, { id: string; url: string }>();
 
   if (hasApiKey) {
-    const dbId = formatUuid(PROJECTS_DB_ID);
+    const dbId = formatUuid(getProjectsDbId());
     let allResults: any[] = [];
     let startCursor: string | undefined;
 
@@ -1700,7 +1750,7 @@ export async function getProjectLookup(): Promise<Map<string, { id: string; url:
     }
   } else {
     try {
-      const viewUrl = `https://www.notion.so/${PROJECTS_DB_ID}?v=${PROJECTS_VIEW_ID}`;
+      const viewUrl = databaseUrl(getProjectsDbId(), getProjectsViewId());
       const projResult = callNotionCli("notion-query-database-view", { view_url: viewUrl });
       for (const proj of projResult.results || []) {
         const name = proj.Name || "";
@@ -1733,7 +1783,7 @@ export async function createTaskInNotion(
     await notionFetch(`/pages`, {
       method: "POST",
       body: JSON.stringify({
-        parent: { database_id: formatUuid("6bfd777bf7438394a98c01400b00f442") },
+        parent: { database_id: formatUuid(getTasksDbId()) },
         properties: {
           "Name": { title: [{ text: { content: taskName.slice(0, 200) } }] },
           "Status": { status: { name: "To Do" } },
@@ -1750,7 +1800,9 @@ export async function createTaskInNotion(
     });
   } else {
     callNotionCli("notion-create-pages", {
-      parent: { data_source_id: "fa1d777b-f743-820e-9c41-0738d880ee2c" },
+      parent: getTasksDataSourceId()
+        ? { data_source_id: getTasksDataSourceId() }
+        : { database_id: getTasksDbId() },
       pages: [{
         properties: {
           "Name": taskName,
@@ -1797,7 +1849,7 @@ export async function getRecentlyCompletedTasks(): Promise<{ name: string; type:
   const results: { name: string; type: string; project: string; completedDate: string }[] = [];
 
   if (hasApiKey) {
-    const dbId = formatUuid(TASKS_DB_ID);
+    const dbId = formatUuid(getTasksDbId());
     const response = await notionFetch(`/databases/${dbId}/query`, {
       method: "POST",
       body: JSON.stringify({
@@ -1831,7 +1883,8 @@ export async function getRecentlyCompletedTasks(): Promise<{ name: string; type:
   } else {
     // CLI path — query both active and complete task views
     try {
-      const viewUrl = `https://www.notion.so/${TASKS_DB_ID}?v=${TASKS_COMPLETE_VIEW_ID}`;
+      const completeView = getTasksCompleteViewId();
+      const viewUrl = databaseUrl(getTasksDbId(), completeView);
       const taskResult = callNotionCli("notion-query-database-view", { view_url: viewUrl });
       const projLookup = await getProjectLookup();
 

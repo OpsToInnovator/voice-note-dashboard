@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: ApexForm Life products
+    url: https://apexformlife.com
+    about: AFOS™, Paradigm, consulting, and coaching — the hosted work this engine supports.
+  - name: Brand partnership
+    url: https://github.com/OpsToInnovator/voice-note-dashboard/issues/new?template=brand-partnership.md
+    about: Co-marketing, “Powered by ApexForm Life”, or official-looking use of the marks.
+  - name: Report impersonation
+    url: https://github.com/OpsToInnovator/voice-note-dashboard/issues/new?title=Brand%20impersonation
+    about: A site or product pretending to be ApexForm Life, AFOS™, Paradigm, or Noticing Lens.

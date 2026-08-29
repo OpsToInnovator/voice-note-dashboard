@@ -1,8 +1,33 @@
 {
   "name": "noticing-lens",
   "version": "1.0.0",
+  "description": "Noticing Lens — open thought OS from ApexForm Life. Every capture gets a destination.",
+  "author": {
+    "name": "ApexForm Life",
+    "url": "https://apexformlife.com"
+  },
   "type": "module",
-  "license": "MIT",
+  "license": "Apache-2.0",
+  "keywords": [
+    "apexform-life",
+    "noticing-lens",
+    "afos",
+    "paradigm",
+    "thought-operating-system",
+    "decision-support",
+    "apache-2.0"
+  ],
+  "homepage": "https://apexformlife.com",
+  "bugs": {
+    "url": "https://github.com/OpsToInnovator/voice-note-dashboard/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OpsToInnovator/voice-note-dashboard.git"
+  },
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
@@ -97,8 +122,5 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
-  },
-  "engines": {
-    "node": "22.x"
   }
 }
