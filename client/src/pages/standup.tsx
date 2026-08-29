@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/lib/theme";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import type { DailyStandup, ProcessingResult, ProofPanel, DailyResurface, ResurfaceItem } from "@shared/schema";
+import type { DailyStandup, ProcessingResult, ProofPanel, DailyResurface, ResurfaceItem, ClarifyResult } from "@shared/schema";
 import {
   Sun,
   Moon,
@@ -234,8 +234,18 @@ function ResurfaceItemRow({
       <div className="flex-1 min-w-0">
         <span className="text-[13px] font-medium block truncate">{item.name}</span>
         <span className="text-[11px] text-muted-foreground">{item.reason}</span>
+        {item.actionLint?.weak && item.actionLint.reasons[0] ? (
+          <span className="text-[11px] text-chart-3 block mt-0.5" data-testid={`${testId}-lint`}>
+            {item.actionLint.reasons[0]}
+          </span>
+        ) : null}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
+        {item.actionLint?.weak ? (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded text-chart-3 bg-chart-3/10">
+            Thought
+          </span>
+        ) : null}
         <SourceBadge source={item.source} />
         {item.priority ? <PriorityBadge priority={item.priority} /> : null}
         {item.url ? (
@@ -276,6 +286,66 @@ function InboxMeter({ count, cap, overflow }: { count: number; cap: number; over
           style={{ width: `${ratio}%` }}
         />
       </div>
+    </div>
+  );
+}
+
+function ClarifyInboxBar({ overflow }: { overflow: boolean }) {
+  const [result, setResult] = useState<ClarifyResult | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/inbox/clarify");
+      return (await res.json()) as ClarifyResult;
+    },
+    onSuccess: (data) => {
+      setResult(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/resurface"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/standup"] });
+    },
+  });
+
+  return (
+    <div className="px-5 py-3 border-b border-card-border" data-testid="clarify-inbox-bar">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[12px] text-muted-foreground leading-relaxed">
+          {overflow
+            ? "Turn thoughts into one next action each — or a conscious not-now. Motion is not a result."
+            : "Any leftover thoughts can be clarified into a next step before they go stale."}
+        </p>
+        <button
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending}
+          className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0"
+          data-testid="button-clarify-inbox"
+        >
+          {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+          Clarify Inbox
+        </button>
+      </div>
+      {mutation.isError && (
+        <p className="text-[12px] text-destructive mt-2">Couldn’t clarify Inbox. Try again.</p>
+      )}
+      {result && (
+        <div className="mt-3 space-y-2" data-testid="clarify-inbox-result">
+          <p className="text-[12px] text-muted-foreground">
+            {result.notesClarified} thought{result.notesClarified !== 1 ? "s" : ""} ·{" "}
+            <span className="font-semibold text-foreground">{result.tasksCreated}</span> next action
+            {result.tasksCreated !== 1 ? "s" : ""}
+            {result.deferred > 0 ? ` · ${result.deferred} not now` : ""}
+          </p>
+          {result.cards
+            .filter((card) => card.decision === "act")
+            .map((card, i) => (
+              <div key={`${card.sourceId}-${i}`} className="border border-card-border rounded-lg px-3 py-2">
+                <p className="text-[12px] font-medium">{card.nextStep}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {card.definitionOfDone || card.timeOrTrigger}
+                </p>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -339,6 +409,8 @@ function ResurfaceSection() {
       </div>
 
       <InboxMeter count={data.inbox.count} cap={data.inbox.cap} overflow={overflow} />
+
+      {data.inbox.count > 0 ? <ClarifyInboxBar overflow={overflow} /> : null}
 
       {overflow ? (
         <>
@@ -881,7 +953,7 @@ function VoiceNoteProcessorSection() {
           <div className="flex items-center gap-3 py-2">
             <Loader2 className="w-4 h-4 text-primary animate-spin" />
             <p className="text-[13px] text-muted-foreground">
-              Reading voice notes and extracting tasks…
+              Reading voice notes and turning thoughts into next actions…
             </p>
           </div>
         )}
@@ -934,20 +1006,32 @@ function VoiceNoteProcessorSection() {
                   {detail.tasksCreated.map((task, i) => (
                     <li
                       key={i}
-                      className="px-4 py-2 border-b border-card-border last:border-b-0 flex items-center gap-2.5"
+                      className="px-4 py-2 border-b border-card-border last:border-b-0"
                       data-testid={`extracted-task-${detail.id}-${i}`}
                     >
-                      <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                      <span className="text-[12px] flex-1 min-w-0 truncate">{task.name}</span>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <TypeBadge type={task.type} />
-                        <PriorityBadgeSmall priority={task.priority} />
-                        {task.project && (
-                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]">
-                            {task.project}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-2.5">
+                        <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                        <span className="text-[12px] flex-1 min-w-0 truncate">{task.name}</span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {task.decision === "not_now" ? (
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded text-muted-foreground bg-muted">
+                              Not now
+                            </span>
+                          ) : null}
+                          <TypeBadge type={task.type} />
+                          <PriorityBadgeSmall priority={task.priority} />
+                          {task.project && (
+                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                              {task.project}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      {task.definitionOfDone ? (
+                        <p className="text-[11px] text-muted-foreground ml-6 mt-1">
+                          Done when: {task.definitionOfDone}
+                        </p>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

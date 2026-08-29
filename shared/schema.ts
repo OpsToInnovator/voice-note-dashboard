@@ -155,6 +155,7 @@ export interface ProofPanel {
 }
 
 export type { DailyResurface, ResurfaceItem } from "./resurface";
+export type { ActionCard, ClarifyResult } from "./actionFrame";
 
 export interface TitledNote {
   id: string;
@@ -168,7 +169,19 @@ export interface TitledNote {
 export interface ProcessedVoiceNote {
   id: string;
   name: string;
-  tasksCreated: { name: string; type: string; project: string; priority: string }[];
+  tasksCreated: {
+    name: string;
+    type: string;
+    project: string;
+    priority: string;
+    thought?: string;
+    whyItMatters?: string;
+    timeOrTrigger?: string;
+    definitionOfDone?: string;
+    learnIfFails?: string;
+    due?: string | null;
+    decision?: "act" | "not_now";
+  }[];
 }
 
 export interface ProcessingResult {

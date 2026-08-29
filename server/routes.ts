@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup, gatherIntelligenceContext, classifyUnclassifiedTasks } from "./notion";
 import { generateIntelligence, autoTitleNotes, processVoiceNotes, getUnprocessedVoiceNoteCount, generateProofPanel } from "./intelligence";
 import { getDailyResurface, runResurfaceJob } from "./resurface";
+import { clarifyInbox } from "./actionFrame";
 import type { DailyStandup } from "../shared/schema";
 
 function fixtureStandup(): DailyStandup {
@@ -115,6 +116,17 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Error running resurface job:", err);
       res.status(500).json({ error: "Failed to run resurface job", message: err.message });
+    }
+  });
+
+  // Turn Inbox thoughts into next actions (or a conscious not-now)
+  app.post("/api/inbox/clarify", async (_req, res) => {
+    try {
+      const result = await clarifyInbox();
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error clarifying inbox:", err);
+      res.status(500).json({ error: "Failed to clarify inbox", message: err.message });
     }
   });
 

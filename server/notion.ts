@@ -68,6 +68,10 @@ export async function cached<T>(key: string, fn: () => Promise<T>, ttl: number =
   return data;
 }
 
+export function invalidateCache(key: string): void {
+  cache.delete(key);
+}
+
 // --- Extract page ID helpers ---
 function extractPageId(urlOrId: string): string {
   const match = urlOrId.match(/([a-f0-9]{32})$/);
@@ -1719,8 +1723,11 @@ export async function createTaskInNotion(
   voiceNoteId: string,
   projectId: string | null,
   projectUrl: string | null,
+  extras?: { due?: string | null; children?: any[] },
 ): Promise<void> {
   const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+  const due = extras?.due || null;
+  const children = extras?.children?.length ? extras.children : undefined;
 
   if (hasApiKey) {
     await notionFetch(`/pages`, {
@@ -1728,13 +1735,17 @@ export async function createTaskInNotion(
       body: JSON.stringify({
         parent: { database_id: formatUuid("6bfd777bf7438394a98c01400b00f442") },
         properties: {
-          "Name": { title: [{ text: { content: taskName } }] },
+          "Name": { title: [{ text: { content: taskName.slice(0, 200) } }] },
           "Status": { status: { name: "To Do" } },
           "P/I": { select: { name: taskType } },
           "Priority": { status: { name: priority } },
-          "Notes": { relation: [{ id: formatUuid(voiceNoteId) }] },
+          ...(voiceNoteId
+            ? { "Notes": { relation: [{ id: formatUuid(voiceNoteId) }] } }
+            : {}),
           ...(projectId ? { "Project": { relation: [{ id: formatUuid(projectId) }] } } : {}),
+          ...(due ? { "Due": { date: { start: due } } } : {}),
         },
+        ...(children ? { children } : {}),
       }),
     });
   } else {
@@ -1746,8 +1757,9 @@ export async function createTaskInNotion(
           "Status": "To Do",
           "P/I": taskType,
           "Priority": priority,
-          "Notes": JSON.stringify([`https://www.notion.so/${voiceNoteId}`]),
+          ...(voiceNoteId ? { "Notes": JSON.stringify([`https://www.notion.so/${voiceNoteId}`]) } : {}),
           ...(projectUrl ? { "Project": JSON.stringify([projectUrl]) } : {}),
+          ...(due ? { "Due": due } : {}),
         },
       }],
     });

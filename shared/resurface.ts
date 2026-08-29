@@ -1,6 +1,8 @@
 // Daily resurface: hand back what's actually open, plus anything stale.
 // Capture without return only closes the loop clerically.
 
+import { lintActionName, type ActionLint } from "./actionFrame";
+
 export const INBOX_CAP = 15;
 export const OPEN_TODAY_LIMIT = 7;
 export const STALE_LIMIT = 7;
@@ -41,6 +43,7 @@ export interface ResurfaceItem {
   priority: string;
   status: string;
   type: string;
+  actionLint: ActionLint;
 }
 
 export interface BucketSnapshot {
@@ -171,6 +174,7 @@ export function toResurfaceItem(item: RawCapture, todayStr: string, bucket: Excl
     priority: item.priority,
     status: item.status,
     type: item.type || item.noteType,
+    actionLint: lintActionName(item.name),
   };
 }
 
