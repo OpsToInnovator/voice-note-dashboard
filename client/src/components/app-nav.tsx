@@ -1,6 +1,6 @@
 import { Moon, Sun } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { BrandLockup, BrandMark, BrandWordmark } from "@/components/brand-mark";
+import { BrandLockup, BrandMark, BrandWordmark, HouseCredit, APEXFORM_LIFE_URL } from "@/components/brand-mark";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -62,12 +62,15 @@ export function AppNav() {
   const { theme } = useTheme();
 
   return (
-    <div className="flex items-center justify-between gap-3 mb-8 animate-fade-in delay-1">
-      <div className="flex items-center gap-4 min-w-0 flex-wrap">
-        <BrandLockup compact variant={theme === "light" ? "navy" : "gradient"} />
-        <NavLinks />
+    <div className="mb-8 animate-fade-in delay-1">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-4 min-w-0 flex-wrap">
+          <BrandLockup compact variant={theme === "light" ? "navy" : "gradient"} />
+          <NavLinks />
+        </div>
+        <ThemeToggle />
       </div>
-      <ThemeToggle />
+      <HouseCredit className="mt-2" />
     </div>
   );
 }
@@ -82,21 +85,31 @@ export function SidebarBrandHeader({
   const { theme } = useTheme();
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
-      <div className="flex items-center gap-2.5 min-w-0">
-        <BrandMark
-          variant={theme === "light" ? "navy" : "gradient"}
-          className="h-7 w-auto"
-          title="ApexForm Life"
-        />
-        <div className="min-w-0">
-          <h1 className="truncate" data-testid={titleTestId}>
-            <BrandWordmark className="text-sm" />
-          </h1>
-          <p className="text-[11px] text-muted-foreground font-mono truncate">{subtitle}</p>
-        </div>
+    <div className="border-b border-sidebar-border">
+      <div className="flex items-center justify-between px-4 py-3">
+        <a
+          href={APEXFORM_LIFE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2.5 min-w-0 rounded-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="ApexForm Life — official site"
+          data-testid="brand-home-link"
+        >
+          <BrandMark
+            variant={theme === "light" ? "navy" : "gradient"}
+            className="h-7 w-auto"
+            title="ApexForm Life"
+          />
+          <div className="min-w-0 text-left">
+            <h1 className="truncate" data-testid={titleTestId}>
+              <BrandWordmark className="text-sm" />
+            </h1>
+            <p className="text-[11px] text-muted-foreground font-mono truncate">{subtitle}</p>
+          </div>
+        </a>
+        <ThemeToggle />
       </div>
-      <ThemeToggle />
+      <HouseCredit className="px-4 pb-3" />
     </div>
   );
 }

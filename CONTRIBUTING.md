@@ -1,6 +1,8 @@
 # Contributing
 
-Thank you for helping expand Noticing Lens. The product is a **thought operating system**: it decides what happens to a thought once it appears. It is not a notes app, task manager, journal, or chatbot.
+Thank you for helping expand **Noticing Lens**, the open thought operating system from [ApexForm Life](https://apexformlife.com). You are contributing to the public engine. Hosted products (AFOS™, Paradigm) and services stay ApexForm Life’s.
+
+The product decides what happens to a thought once it appears. It is not a notes app, task manager, journal, or chatbot.
 
 Trust line: *govern the process by which I decide — not decide for me.*
 
@@ -49,4 +51,6 @@ npm test
 
 ## License and brand
 
-Code: [Apache License 2.0](LICENSE). Brand: [TRADEMARKS.md](TRADEMARKS.md).
+Code: [Apache License 2.0](LICENSE). Names and marks: [TRADEMARKS.md](TRADEMARKS.md).
+
+Keep the preferred credit when you write about the work: *Noticing Lens is the open thought operating system from ApexForm Life.* Link [apexformlife.com](https://apexformlife.com). Do not strip house branding from this repository’s chrome to “genericise” a PR; that credit is intentional.

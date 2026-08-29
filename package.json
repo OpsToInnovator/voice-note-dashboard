@@ -1,16 +1,23 @@
 {
   "name": "noticing-lens",
   "version": "1.0.0",
-  "description": "A thought operating system: every capture gets a destination. Apache-2.0.",
+  "description": "Noticing Lens — open thought OS from ApexForm Life. Every capture gets a destination.",
+  "author": {
+    "name": "ApexForm Life",
+    "url": "https://apexformlife.com"
+  },
   "type": "module",
   "license": "Apache-2.0",
   "keywords": [
+    "apexform-life",
+    "noticing-lens",
+    "afos",
+    "paradigm",
     "thought-operating-system",
-    "notion",
     "decision-support",
     "apache-2.0"
   ],
-  "homepage": "https://github.com/OpsToInnovator/voice-note-dashboard#readme",
+  "homepage": "https://apexformlife.com",
   "bugs": {
     "url": "https://github.com/OpsToInnovator/voice-note-dashboard/issues"
   },
