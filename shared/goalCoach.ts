@@ -1,6 +1,10 @@
 // Coaching engine taken from Goal Coach: type, diagnostics, maths, obstacles, phases.
 // Used after a thought earns attention — never as a 10-step wizard for every capture.
 
+/** Public Think chip — operator voice, still a $1M services capacity stop. */
+export const MILLION_GOAL_CAPTURE =
+  "I need to do $1M this year from the current practice — same hours, no extra headcount.";
+
 export type GoalTypeKey = "money" | "build" | "career" | "body" | "skill" | "system" | "other";
 
 export type MoneyModel = "services" | "subscription" | "product" | "investment";

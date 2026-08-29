@@ -9,11 +9,13 @@ import {
   diagnoseOutcome,
   inferMoneyModel,
   parseMoneyTarget,
+  MILLION_GOAL_CAPTURE,
 } from "./goalCoach.ts";
 
 describe("goal type and money parse", () => {
-  it("classifies a $1M income statement as money", () => {
-    assert.equal(classifyGoalType("I earn 1 million dollars"), "money");
+  it("classifies a $1M practice statement as money", () => {
+    assert.equal(classifyGoalType(MILLION_GOAL_CAPTURE), "money");
+    assert.equal(parseMoneyTarget(MILLION_GOAL_CAPTURE), 1_000_000);
     assert.equal(parseMoneyTarget("I earn 1 million dollars"), 1_000_000);
   });
 
@@ -41,7 +43,7 @@ describe("feasibility maths", () => {
   });
 
   it("assessGoal attaches that stop to the $1M statement", () => {
-    const coach = assessGoal("I earn 1 million dollars");
+    const coach = assessGoal(MILLION_GOAL_CAPTURE);
     assert.ok(coach);
     assert.equal(coach.type, "money");
     assert.equal(coach.feasibility?.model, "services");

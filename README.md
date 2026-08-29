@@ -33,7 +33,7 @@ Credit ApexForm Life when you fork, write, or demo. [TRADEMARKS.md](TRADEMARKS.m
 
 **Forty seconds. No clone. No Notion.**
 
-The public fixture opens **Think**. Tap **`$1M income`**, then **Decide what happens next**. Destination is **DECIDE** (capacity stop — change the model, not more volume). The ApexForm Life lockup is the building: AFOS™, Paradigm, a project.
+The public fixture opens **Think**. Tap **`$1M this year`**, then **Decide what happens next**. Destination is **DECIDE** (capacity stop — change the model, not more volume). The ApexForm Life lockup is the building: AFOS™, Paradigm, a project.
 
 Host it on the existing **Noticing Lens** Railway service with only `RESURFACE_FIXTURE=overflow` (Notion and OpenAI unset). Do not set that variable on [app.apexformlife.com](https://app.apexformlife.com) — that host is AFOS. If the current service is still a live Notion workspace, add a second service in the same project. Optional CNAME: `lens.apexformlife.com`. Empty hash lands on Think. Details: [docs/setup.md](docs/setup.md).
 
@@ -55,7 +55,7 @@ RESURFACE_FIXTURE=overflow PORT=5000 npm run dev
 | Projects | `/#/projects` | Health |
 | Intelligence | `/#/intelligence` | Weekly patterns |
 
-Sample chips on Think: pricing confusion, invoice send, outreach avoidance, `$1M income` (capacity stop → DECIDE).
+Sample chips on Think: pricing confusion, invoice send, outreach avoidance, `$1M this year` (capacity stop → DECIDE).
 
 ```bash
 npm test

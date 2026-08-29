@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lintActionName } from "./actionFrame.ts";
-import { CHANGE_THE_MODEL_STEP } from "./goalCoach.ts";
+import { CHANGE_THE_MODEL_STEP, MILLION_GOAL_CAPTURE } from "./goalCoach.ts";
 import {
   checkAgency,
   classifyFamily,
@@ -66,11 +66,12 @@ describe("thought operating system", () => {
     assert.equal(lintActionName(record.firstAction.nextStep).weak, false);
   });
 
-  it("sends a $1M income goal to DECIDE when services maths hit a capacity stop", () => {
-    const record = fixtureThought("I earn 1 million dollars", "2026-08-29");
+  it("sends a $1M practice goal to DECIDE when services maths hit a capacity stop", () => {
+    const record = fixtureThought(MILLION_GOAL_CAPTURE, "2026-08-29");
     assert.equal(record.family, "goal");
     assert.equal(record.tier, 3);
     assert.equal(record.destination, "DECIDE");
+    assert.match(record.destinationReason, /Goal maths say stop/i);
     assert.equal(record.coach?.feasibility?.verdict?.level, "stop");
     assert.equal(record.firstAction?.nextStep, CHANGE_THE_MODEL_STEP);
     assert.ok(record.container?.guardrails.some((g) => /do not scale/i.test(g)));
@@ -93,6 +94,7 @@ describe("gates from the text alone", () => {
     assert.equal(checkAgency("Nothing I can do about the weather around this deal").disposition, "accept");
     assert.equal(scoreSubstance("idk lol").verdict, "delete");
     assert.equal(classifyTier("change how we price this"), 3);
+    assert.equal(classifyTier(MILLION_GOAL_CAPTURE), 3);
     assert.equal(classifyTier("send the invoice"), 1);
   });
 });

@@ -12,6 +12,7 @@ import {
 } from "./actionFrame";
 import {
   CHANGE_THE_MODEL_STEP,
+  MILLION_GOAL_CAPTURE,
   assessGoal,
   feasibilityBlocksExecute,
   obstacleToIfThen,
@@ -544,9 +545,9 @@ export const SAMPLE_GOALS: { label: string; frameworkId: FrameworkId; text: stri
     text: "I should improve my consulting offer.",
   },
   {
-    label: "$1M income",
+    label: "$1M this year",
     frameworkId: "twelve_week_sprint",
-    text: "I earn 1 million dollars",
+    text: MILLION_GOAL_CAPTURE,
   },
 ];
 

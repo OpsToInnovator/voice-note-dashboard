@@ -19,7 +19,7 @@ Do **not** set these variables on [app.apexformlife.com](https://app.apexformlif
 
 If the existing Lens service is still the live Notion operator deploy, add a **second** service in the same project (`noticing-lens-demo`) with only `RESURFACE_FIXTURE=overflow`. Share that URL. Optional DNS: CNAME `lens.apexformlife.com` → the demo service.
 
-An empty path opens Think. The forty-second proof: tap **`$1M income`**, then **Decide what happens next**.
+An empty path opens Think. The forty-second proof: tap **`$1M this year`**, then **Decide what happens next**.
 
 ## Local try (contributors)
 

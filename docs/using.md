@@ -8,7 +8,7 @@ Start in fixture mode so you can learn the surfaces without Notion:
 RESURFACE_FIXTURE=overflow PORT=5000 npm run dev
 ```
 
-Open the app. An empty URL lands on Think (`/#/think`). The forty-second proof: tap **`$1M income`**, then **Decide what happens next**. Destination is **DECIDE** — change the model, not more volume.
+Open the app. An empty URL lands on Think (`/#/think`). The forty-second proof: tap **`$1M this year`**, then **Decide what happens next**. Destination is **DECIDE** — change the model, not more volume.
 
 <p align="center">
   <img src="images/think.png" alt="Think: capture a thought" width="920" />
@@ -24,7 +24,7 @@ Routes are **hash routes** (`/#/think`, not `/think`). Bookmark the hash. Voice 
 
 This is the core loop.
 
-1. Type a thought, or pick a sample chip (pricing confusion, invoice send, outreach avoidance, `$1M income`).
+1. Type a thought, or pick a sample chip (pricing confusion, invoice send, outreach avoidance, `$1M this year`).
 2. Choose **Decide what happens next**.
 3. Read the **destination** first: DELETE, STORE, EXPLORE, DECIDE, or EXECUTE.
 4. If meanings A / B / C appear, confirm one. The destination can change. The original wording is preserved.

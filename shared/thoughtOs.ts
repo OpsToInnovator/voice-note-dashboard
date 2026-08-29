@@ -12,6 +12,7 @@ import {
 } from "./frameworks";
 import {
   CHANGE_THE_MODEL_STEP,
+  MILLION_GOAL_CAPTURE,
   assessGoal,
   feasibilityBlocksExecute,
   parseMoneyTarget,
@@ -189,10 +190,10 @@ const NO_AGENCY =
   /\b(weather|can't control|cannot control|out of my hands|nothing i can do|the market will do|other people (will|always)|fate|luck)\b/i;
 
 const DEVELOP_AGENCY =
-  /\b(we should|i should|i will|i can|i earn|change how|redesign|price|offer|send|book|write|interview|build|decide|test|million|income)\b/i;
+  /\b(we should|i should|i will|i can|i need|i earn|change how|redesign|price|offer|send|book|write|interview|build|decide|test|million|income)\b|\$\s*[\d,.]+/i;
 
 const TIER_3 =
-  /\b(pric(?:e|ing)|fire|legal|contract|hire|spend|\$|revenue|million|income|irreversible|resign|relationship|strategy|architecture|equity|litigation)\b/i;
+  /\b(pric(?:e|ing)|fire|legal|contract|hire|spend|revenue|million|income|irreversible|resign|relationship|strategy|architecture|equity|litigation)\b|\$\s*[\d,.]+/i;
 
 const TIER_1 =
   /\b(send|record|file|log|schedule|remind|draft a message|invite|book a time)\b/i;
@@ -421,7 +422,8 @@ export function normalizeThought(
   if (
     feasibilityBlocksExecute(coach) &&
     !meaningsOpen &&
-    (gate.destination === "EXECUTE" || gate.destination === "EXPLORE")
+    gate.destination !== "DELETE" &&
+    gate.destination !== "STORE"
   ) {
     gate = {
       destination: "DECIDE",
@@ -529,8 +531,8 @@ export const SAMPLE_THOUGHTS: { label: string; text: string }[] = [
     text: "I want to book five discovery calls this month but I overthink the wording of outreach and postpone sending it.",
   },
   {
-    label: "$1M income",
-    text: "I earn 1 million dollars",
+    label: "$1M this year",
+    text: MILLION_GOAL_CAPTURE,
   },
 ];
 
@@ -606,13 +608,13 @@ export function fixtureThought(
     );
   }
 
-  if (parseMoneyTarget(t) && /million|i earn|income/i.test(t)) {
+  if (parseMoneyTarget(t)) {
     return normalizeThought(
       {
         original: t,
         interpretation: {
           parts: [
-            { kind: "idea", text: "A large income target stated as an achieved result." },
+            { kind: "idea", text: "A large income target on the current practice." },
             { kind: "assumption", text: "Hours-based delivery can scale to that number." },
             { kind: "decision", text: "If the maths fail, the model has to change — price, hours, productisation, or capacity." },
           ],
