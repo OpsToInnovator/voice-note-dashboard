@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useTheme } from "@/lib/theme";
 import type { IntelligenceReport, ClassifiedTask, SystemAuditItem, TitledNote } from "@shared/schema";
 import {
-  Sun,
-  Moon,
   Brain,
   Target,
   Eye,
@@ -27,8 +24,8 @@ import {
   FileEdit,
   ArrowRight,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppNav } from "@/components/app-nav";
 
 // --- Helpers ---
 function timeAgo(dateStr: string): string {
@@ -42,92 +39,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-// --- Nav Tabs ---
-function IntelligenceNav() {
-  const [location] = useLocation();
-  const { theme, toggle } = useTheme();
 
-  return (
-    <div className="flex items-center justify-between mb-8 animate-fade-in delay-1">
-      <div className="flex gap-1 flex-wrap">
-        <Link
-          href="/think"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/think"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-think"
-        >
-          Think
-        </Link>
-        <Link
-          href="/standup"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/standup"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-standup"
-        >
-          Standup
-        </Link>
-        <Link
-          href="/projects"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/projects"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-projects"
-        >
-          Projects
-        </Link>
-        <Link
-          href="/"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-voice-notes"
-        >
-          Voice Notes
-        </Link>
-        <Link
-          href="/intelligence"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/intelligence"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-intelligence"
-        >
-          Intelligence
-        </Link>
-        <Link
-          href="/goals"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/goals"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-goals"
-        >
-          Goals
-        </Link>
-      </div>
-      <button
-        onClick={toggle}
-        className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-        data-testid="theme-toggle"
-      >
-        {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-      </button>
-    </div>
-  );
-}
 
 // --- Loading Skeleton ---
 function IntelligenceSkeleton() {
@@ -633,13 +545,13 @@ export default function Intelligence() {
     return (
       <div className="h-screen bg-background overflow-y-auto custom-scrollbar">
         <div className="max-w-[900px] mx-auto px-6 py-8">
-          <IntelligenceNav />
+          <AppNav />
           <div className="flex flex-col items-center justify-center py-20">
             <AlertTriangle className="w-8 h-8 text-destructive mb-3" />
             <p className="text-sm text-muted-foreground mb-4">Failed to generate intelligence report.</p>
             <button
               onClick={() => refetch()}
-              className="text-[12px] font-medium px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="btn-brand"
               data-testid="retry-button"
             >
               Try Again
@@ -654,7 +566,7 @@ export default function Intelligence() {
     return (
       <div className="h-screen bg-background overflow-y-auto custom-scrollbar">
         <div className="max-w-[900px] mx-auto px-6 py-8">
-          <IntelligenceNav />
+          <AppNav />
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto mb-4">
               <Brain className="w-7 h-7 text-primary" />
@@ -665,7 +577,7 @@ export default function Intelligence() {
             </p>
             <button
               onClick={() => refetch()}
-              className="text-sm font-medium px-5 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2"
+              className="btn-brand text-sm px-5 py-2.5 rounded-lg"
             >
               <Sparkles className="w-4 h-4" />
               Run Analysis
@@ -689,7 +601,7 @@ export default function Intelligence() {
     <div className="h-screen bg-background overflow-y-auto custom-scrollbar" style={{ overscrollBehavior: "contain" }}>
       <div className="max-w-[900px] mx-auto px-6 py-8">
         {/* Navigation */}
-        <IntelligenceNav />
+        <AppNav />
 
         {/* Header */}
         <div className="mb-6 animate-fade-in delay-1">

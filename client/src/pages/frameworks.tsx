@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useTheme } from "@/lib/theme";
 import { apiRequest } from "@/lib/queryClient";
 import type { ApplyFrameworkResult, FrameworkId, FrameworkMeta } from "@shared/frameworks";
 import {
@@ -11,8 +10,6 @@ import {
   recommendFramework,
 } from "@shared/frameworks";
 import {
-  Sun,
-  Moon,
   Map,
   Zap,
   Loader2,
@@ -20,94 +17,8 @@ import {
   ArrowRight,
   CalendarClock,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
 import { CoachPanel } from "@/components/coach-panel";
-
-function GoalsNav() {
-  const [location] = useLocation();
-  const { theme, toggle } = useTheme();
-
-  return (
-    <div className="flex items-center justify-between mb-8 animate-fade-in delay-1">
-      <div className="flex gap-1 flex-wrap">
-        <Link
-          href="/think"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/think"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-think"
-        >
-          Think
-        </Link>
-        <Link
-          href="/standup"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/standup"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-standup"
-        >
-          Standup
-        </Link>
-        <Link
-          href="/"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-voice-notes"
-        >
-          Voice Notes
-        </Link>
-        <Link
-          href="/projects"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/projects"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-projects"
-        >
-          Projects
-        </Link>
-        <Link
-          href="/intelligence"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/intelligence"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-intelligence"
-        >
-          Intelligence
-        </Link>
-        <Link
-          href="/goals"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/goals"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-goals"
-        >
-          Goals
-        </Link>
-      </div>
-      <button
-        onClick={toggle}
-        className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-        data-testid="theme-toggle"
-      >
-        {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-      </button>
-    </div>
-  );
-}
+import { AppNav } from "@/components/app-nav";
 
 function FrameworkChip({
   fw,
@@ -278,7 +189,7 @@ export default function Goals() {
   return (
     <div className="h-screen bg-background overflow-y-auto custom-scrollbar" style={{ overscrollBehavior: "contain" }}>
       <div className="max-w-[800px] mx-auto px-6 py-8">
-        <GoalsNav />
+        <AppNav />
 
         <div className="mb-6 animate-fade-in delay-1">
           <div className="flex items-center gap-2 mb-1">
@@ -350,7 +261,7 @@ export default function Goals() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={4}
-            className="mt-2 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-[13px] leading-relaxed focus:outline-none focus:ring-1 focus:ring-primary"
+            className="mt-2 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-[13px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
             placeholder="By 30 November I will have sold three paid diagnostic engagements…"
             data-testid="goal-input"
           />
@@ -383,7 +294,7 @@ export default function Goals() {
               type="button"
               onClick={() => apply.mutate()}
               disabled={!content.trim() || apply.isPending}
-              className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+              className="btn-brand"
               data-testid="button-apply-framework"
             >
               {apply.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}

@@ -5,8 +5,6 @@ import { useTheme } from "@/lib/theme";
 import type { VoiceNoteListItem, VoiceNoteDetail } from "@shared/schema";
 import {
   Mic,
-  Sun,
-  Moon,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -19,9 +17,9 @@ import {
   ChevronUp,
   FileText,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { NavLinks, SidebarBrandHeader } from "@/components/app-nav";
 import {
   PieChart,
   Pie,
@@ -60,103 +58,30 @@ function useChartColors() {
   const { theme } = useTheme();
   return theme === "dark"
     ? {
-        accent: "#4f98a3",
-        success: "#6daa45",
-        warning: "#e8af34",
-        error: "#dd6974",
-        purple: "#a86fdf",
-        surface: "#18181b",
-        text: "#e4e4e7",
-        textMuted: "#8b8b94",
-        border: "#2e2e33",
+        accent: "#4FE3FF",
+        success: "#47D18C",
+        warning: "#F4B544",
+        error: "#FF5E7A",
+        purple: "#8A7CFF",
+        surface: "#111522",
+        text: "#F3F7FF",
+        textMuted: "#A9B4CC",
+        border: "rgba(243,247,255,0.12)",
       }
     : {
-        accent: "#01696f",
-        success: "#437a22",
-        warning: "#964219",
-        error: "#a13544",
-        purple: "#7c3aed",
+        accent: "#5B4FE0",
+        success: "#1F9A5C",
+        warning: "#C47A0A",
+        error: "#D63D5A",
+        purple: "#5B4FE0",
         surface: "#ffffff",
-        text: "#1c1c1e",
-        textMuted: "#6b6b73",
-        border: "#e2e2e0",
+        text: "#0B0D12",
+        textMuted: "#6E7A95",
+        border: "rgba(11,13,18,0.12)",
       };
 }
 
-// --- Nav Tabs ---
-function NavTabs() {
-  const [location] = useLocation();
-  return (
-    <div className="px-3 py-2 border-b border-sidebar-border flex gap-1 flex-wrap">
-      <Link
-        href="/think"
-        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-          location === "/think"
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
-        data-testid="nav-think"
-      >
-        Think
-      </Link>
-      <Link
-        href="/standup"
-        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-          location === "/standup"
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
-        data-testid="nav-standup"
-      >
-        Standup
-      </Link>
-      <Link
-        href="/"
-        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-          location === "/"
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
-        data-testid="nav-voice-notes"
-      >
-        Voice Notes
-      </Link>
-      <Link
-        href="/projects"
-        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-          location === "/projects"
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
-        data-testid="nav-projects"
-      >
-        Projects
-      </Link>
-      <Link
-        href="/intelligence"
-        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-          location === "/intelligence"
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
-        data-testid="nav-intelligence"
-      >
-        Intelligence
-      </Link>
-      <Link
-        href="/goals"
-        className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-          location === "/goals"
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
-        data-testid="nav-goals"
-      >
-        Goals
-      </Link>
-    </div>
-  );
-}
+
 
 // --- Sidebar ---
 function VoiceNoteSidebar({
@@ -170,39 +95,12 @@ function VoiceNoteSidebar({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
-  const { theme, toggle } = useTheme();
-
   return (
     <div
       className="flex flex-col h-full w-full md:w-[300px] md:min-w-[300px] md:max-w-[300px] bg-sidebar border-r border-sidebar-border"
     >
-      {/* Sidebar Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary flex items-center justify-center">
-            <Mic className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <h1 className="font-display text-sm font-semibold tracking-tight" data-testid="app-title">
-              Voice Notes
-            </h1>
-            <p className="text-[11px] text-muted-foreground">
-              {isLoading ? "Loading…" : `${notes.length} notes`}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={toggle}
-          className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          data-testid="theme-toggle"
-        >
-          {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-        </button>
-      </div>
-
-      {/* Nav tabs */}
-      <NavTabs />
+      <SidebarBrandHeader subtitle={isLoading ? "Loading…" : `${notes.length} notes`} />
+      <NavLinks className="px-3 py-2 border-b border-sidebar-border" />
 
       {/* Sidebar List */}
       <ScrollArea className="flex-1 custom-scrollbar">

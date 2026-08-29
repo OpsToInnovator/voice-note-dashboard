@@ -81,6 +81,13 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        ink: "hsl(var(--brand-ink) / <alpha-value>)",
+        "brand-cyan": "hsl(var(--brand-cyan) / <alpha-value>)",
+        "brand-violet": "hsl(var(--brand-violet) / <alpha-value>)",
+        "brand-amber": "hsl(var(--brand-amber) / <alpha-value>)",
+      },
+      backgroundImage: {
+        "brand-cta": "var(--brand-gradient)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

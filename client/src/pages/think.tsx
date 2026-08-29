@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useTheme } from "@/lib/theme";
 import { apiRequest } from "@/lib/queryClient";
 import type { ThoughtRecord } from "@shared/thoughtOs";
 import {
@@ -12,8 +11,6 @@ import {
   TIER_COPY,
 } from "@shared/thoughtOs";
 import {
-  Sun,
-  Moon,
   Brain,
   Zap,
   Loader2,
@@ -22,94 +19,8 @@ import {
   Shield,
   Scale,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
 import { CoachPanel } from "@/components/coach-panel";
-
-function ThinkNav() {
-  const [location] = useLocation();
-  const { theme, toggle } = useTheme();
-
-  return (
-    <div className="flex items-center justify-between mb-8 animate-fade-in delay-1">
-      <div className="flex gap-1 flex-wrap">
-        <Link
-          href="/think"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/think"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-think"
-        >
-          Think
-        </Link>
-        <Link
-          href="/standup"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/standup"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-standup"
-        >
-          Standup
-        </Link>
-        <Link
-          href="/"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-voice-notes"
-        >
-          Voice Notes
-        </Link>
-        <Link
-          href="/projects"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/projects"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-projects"
-        >
-          Projects
-        </Link>
-        <Link
-          href="/intelligence"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/intelligence"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-intelligence"
-        >
-          Intelligence
-        </Link>
-        <Link
-          href="/goals"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/goals"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-goals"
-        >
-          Goals
-        </Link>
-      </div>
-      <button
-        onClick={toggle}
-        className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-        data-testid="theme-toggle"
-      >
-        {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-      </button>
-    </div>
-  );
-}
+import { AppNav } from "@/components/app-nav";
 
 function DestinationBadge({ destination }: { destination: ThoughtRecord["destination"] }) {
   const tone =
@@ -118,12 +29,12 @@ function DestinationBadge({ destination }: { destination: ThoughtRecord["destina
       : destination === "STORE"
         ? "text-muted-foreground bg-muted"
         : destination === "EXECUTE"
-          ? "text-primary bg-primary/10"
+          ? "text-brand-cyan bg-brand-cyan/10"
           : destination === "DECIDE"
-            ? "text-chart-3 bg-chart-3/10"
+            ? "text-brand-amber bg-brand-amber/10"
             : "text-primary bg-primary/10";
   return (
-    <span className={`text-[11px] font-semibold tracking-wider px-2 py-0.5 rounded ${tone}`} data-testid="destination-badge">
+    <span className={`text-[11px] font-semibold font-mono tracking-wider px-2 py-0.5 rounded ${tone}`} data-testid="destination-badge">
       {destination}
     </span>
   );
@@ -346,7 +257,7 @@ export default function Think() {
   return (
     <div className="h-screen bg-background overflow-y-auto custom-scrollbar" style={{ overscrollBehavior: "contain" }}>
       <div className="max-w-[800px] mx-auto px-6 py-8">
-        <ThinkNav />
+        <AppNav />
 
         <div className="mb-6 animate-fade-in delay-1">
           <div className="flex items-center gap-2 mb-1">
@@ -381,7 +292,7 @@ export default function Think() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={4}
-            className="mt-2 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-[13px] leading-relaxed focus:outline-none focus:ring-1 focus:ring-primary"
+            className="mt-2 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-[13px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
             placeholder="I keep thinking we should change how we price this…"
             data-testid="thought-input"
           />
@@ -406,7 +317,7 @@ export default function Think() {
               type="button"
               onClick={() => process.mutate(null)}
               disabled={!content.trim() || process.isPending}
-              className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+              className="btn-brand"
               data-testid="button-process-thought"
             >
               {process.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}

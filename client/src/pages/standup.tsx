@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useTheme } from "@/lib/theme";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import type { DailyStandup, ProcessingResult, ProofPanel, DailyResurface, ResurfaceItem, ClarifyResult } from "@shared/schema";
 import {
-  Sun,
-  Moon,
   CheckCircle2,
   AlertTriangle,
   Clock,
@@ -28,8 +25,9 @@ import {
   Inbox,
   RotateCcw,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppNav } from "@/components/app-nav";
 
 // --- Helpers ---
 function formatDate(dateStr: string | null): string {
@@ -61,92 +59,7 @@ function formatTime(dateStr: string): string {
   });
 }
 
-// --- Nav Tabs (standalone for full-width layout) ---
-function StandupNav() {
-  const [location] = useLocation();
-  const { theme, toggle } = useTheme();
 
-  return (
-    <div className="flex items-center justify-between mb-8 animate-fade-in delay-1">
-      <div className="flex gap-1 flex-wrap">
-        <Link
-          href="/think"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/think"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-think"
-        >
-          Think
-        </Link>
-        <Link
-          href="/standup"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/standup"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-standup"
-        >
-          Standup
-        </Link>
-        <Link
-          href="/"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-voice-notes"
-        >
-          Voice Notes
-        </Link>
-        <Link
-          href="/projects"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/projects"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-projects"
-        >
-          Projects
-        </Link>
-        <Link
-          href="/intelligence"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/intelligence"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-intelligence"
-        >
-          Intelligence
-        </Link>
-        <Link
-          href="/goals"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/goals"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-goals"
-        >
-          Goals
-        </Link>
-      </div>
-      <button
-        onClick={toggle}
-        className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-        data-testid="theme-toggle"
-      >
-        {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-      </button>
-    </div>
-  );
-}
 
 // --- KPI Stat Card ---
 function StatCard({
@@ -375,7 +288,7 @@ function ClarifyInboxBar({ overflow }: { overflow: boolean }) {
         <button
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending}
-          className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0"
+          className="btn-brand flex-shrink-0"
           data-testid="button-clarify-inbox"
         >
           {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
@@ -991,7 +904,7 @@ function VoiceNoteProcessorSection() {
             <button
               onClick={() => mutation.mutate()}
               disabled={unprocessedCount === 0}
-              className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              className="btn-brand"
               data-testid="button-process-voice-notes"
             >
               <Zap className="w-3.5 h-3.5" />
@@ -1018,7 +931,7 @@ function VoiceNoteProcessorSection() {
             </p>
             <button
               onClick={() => mutation.mutate()}
-              className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1.5"
+              className="btn-brand"
               data-testid="button-retry-process"
             >
               Retry
@@ -1188,7 +1101,7 @@ export default function Standup() {
     <div className="h-screen bg-background overflow-y-auto custom-scrollbar" style={{ overscrollBehavior: "contain" }}>
       <div className="max-w-[800px] mx-auto px-6 py-8">
         {/* Navigation */}
-        <StandupNav />
+        <AppNav />
 
         {/* Header */}
         <div className="mb-8 animate-fade-in delay-1">
