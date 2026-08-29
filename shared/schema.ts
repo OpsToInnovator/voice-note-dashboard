@@ -154,6 +154,16 @@ export interface ProofPanel {
   tasks: ProofTask[];
 }
 
+export type { DailyResurface, ResurfaceItem } from "./resurface";
+export type { ActionCard, ClarifyResult } from "./actionFrame";
+export type {
+  ApplyFrameworkResult,
+  FrameworkId,
+  FrameworkMeta,
+  FrameworkPlan,
+} from "./frameworks";
+export type { ThoughtRecord, ThoughtDestination, DecisionTier } from "./thoughtOs";
+
 export interface TitledNote {
   id: string;
   oldTitle: string;
@@ -166,7 +176,19 @@ export interface TitledNote {
 export interface ProcessedVoiceNote {
   id: string;
   name: string;
-  tasksCreated: { name: string; type: string; project: string; priority: string }[];
+  tasksCreated: {
+    name: string;
+    type: string;
+    project: string;
+    priority: string;
+    thought?: string;
+    whyItMatters?: string;
+    timeOrTrigger?: string;
+    definitionOfDone?: string;
+    learnIfFails?: string;
+    due?: string | null;
+    decision?: "act" | "not_now";
+  }[];
 }
 
 export interface ProcessingResult {

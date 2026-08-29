@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useTheme } from "@/lib/theme";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import type { DailyStandup, ProcessingResult, ProofPanel } from "@shared/schema";
+import type { DailyStandup, ProcessingResult, ProofPanel, DailyResurface, ResurfaceItem, ClarifyResult } from "@shared/schema";
 import {
-  Sun,
-  Moon,
   CheckCircle2,
   AlertTriangle,
   Clock,
@@ -25,9 +22,12 @@ import {
   Trophy,
   TrendingUp,
   Compass,
+  Inbox,
+  RotateCcw,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppNav } from "@/components/app-nav";
 
 // --- Helpers ---
 function formatDate(dateStr: string | null): string {
@@ -59,70 +59,7 @@ function formatTime(dateStr: string): string {
   });
 }
 
-// --- Nav Tabs (standalone for full-width layout) ---
-function StandupNav() {
-  const [location] = useLocation();
-  const { theme, toggle } = useTheme();
 
-  return (
-    <div className="flex items-center justify-between mb-8 animate-fade-in delay-1">
-      <div className="flex gap-1">
-        <Link
-          href="/standup"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/standup"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-standup"
-        >
-          Standup
-        </Link>
-        <Link
-          href="/"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-voice-notes"
-        >
-          Voice Notes
-        </Link>
-        <Link
-          href="/projects"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/projects"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-projects"
-        >
-          Projects
-        </Link>
-        <Link
-          href="/intelligence"
-          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
-            location === "/intelligence"
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          data-testid="nav-intelligence"
-        >
-          Intelligence
-        </Link>
-      </div>
-      <button
-        onClick={toggle}
-        className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-        data-testid="theme-toggle"
-      >
-        {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-      </button>
-    </div>
-  );
-}
 
 // --- KPI Stat Card ---
 function StatCard({
@@ -199,6 +136,341 @@ function PriorityBadge({ priority }: { priority: string }) {
     >
       {priority}
     </span>
+  );
+}
+
+function SourceBadge({ source }: { source: ResurfaceItem["source"] }) {
+  return (
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded text-muted-foreground bg-muted">
+      {source === "note" ? "Note" : "Task"}
+    </span>
+  );
+}
+
+function ResurfaceItemRow({
+  item,
+  testId,
+  danger,
+}: {
+  item: ResurfaceItem;
+  testId: string;
+  danger?: boolean;
+}) {
+  return (
+    <li
+      className="px-5 py-3 border-b border-card-border last:border-b-0 flex items-center gap-3 hover:bg-muted/30 transition-colors"
+      data-testid={testId}
+    >
+      <div
+        className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 ${
+          danger ? "border-destructive/50" : "border-primary/40"
+        }`}
+      />
+      <div className="flex-1 min-w-0">
+        <span className="text-[13px] font-medium block truncate">{item.name}</span>
+        <span className="text-[11px] text-muted-foreground">{item.reason}</span>
+        {item.actionLint?.weak && item.actionLint.reasons[0] ? (
+          <span className="text-[11px] text-chart-3 block mt-0.5" data-testid={`${testId}-lint`}>
+            {item.actionLint.reasons[0]}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {item.actionLint?.weak ? (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded text-chart-3 bg-chart-3/10">
+            Thought
+          </span>
+        ) : null}
+        <SourceBadge source={item.source} />
+        {item.priority ? <PriorityBadge priority={item.priority} /> : null}
+        {item.url ? (
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-muted-foreground hover:text-foreground"
+            aria-label={`Open ${item.name} in Notion`}
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
+function InboxMeter({ count, cap, overflow }: { count: number; cap: number; overflow: boolean }) {
+  const ratio = Math.min(100, Math.round((count / cap) * 100));
+  return (
+    <div className="px-5 py-3 border-b border-card-border" data-testid="inbox-meter">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Inbox
+        </span>
+        <span
+          className={`text-[12px] font-semibold tabular-nums ${
+            overflow ? "text-destructive" : "text-foreground"
+          }`}
+        >
+          {count}/{cap}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className={`h-full rounded-full ${overflow ? "bg-destructive" : "bg-primary"}`}
+          style={{ width: `${ratio}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ActionPromptCard({ card }: { card: ClarifyResult["cards"][number] }) {
+  const notNow = card.decision === "not_now";
+  const rows: [string, string][] = [
+    ["Thought", card.thought],
+    ["Why it matters now", card.whyItMatters],
+    ["Smallest useful next step", card.nextStep],
+    ["Time or trigger", card.timeOrTrigger],
+    ["Definition of done", card.definitionOfDone],
+    ["What I’ll learn if it fails", card.learnIfFails],
+  ].filter((row): row is [string, string] => Boolean(row[1]));
+
+  return (
+    <div className="border border-card-border rounded-lg px-3 py-2.5" data-testid="action-prompt-card">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <p className="text-[12px] font-medium leading-snug">
+          {notNow ? card.thought || card.nextStep : card.nextStep || card.thought}
+        </p>
+        <span
+          className={`text-[10px] font-medium px-2 py-0.5 rounded flex-shrink-0 ${
+            notNow ? "text-muted-foreground bg-muted" : "text-primary bg-primary/10"
+          }`}
+        >
+          {notNow ? "Not now" : "Next action"}
+        </span>
+      </div>
+      <dl className="space-y-1.5">
+        {rows.map(([label, body]) => (
+          <div key={label}>
+            <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</dt>
+            <dd className="text-[11px] text-muted-foreground leading-relaxed">{body}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function ClarifyInboxBar({ overflow }: { overflow: boolean }) {
+  const [result, setResult] = useState<ClarifyResult | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/inbox/clarify");
+      return (await res.json()) as ClarifyResult;
+    },
+    onSuccess: (data) => {
+      setResult(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/resurface"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/standup"] });
+    },
+  });
+
+  return (
+    <div className="px-5 py-3 border-b border-card-border" data-testid="clarify-inbox-bar">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[12px] text-muted-foreground leading-relaxed">
+          {overflow
+            ? "Turn thoughts into one next action each — or a conscious not-now. Motion is not a result."
+            : "Any leftover thoughts can be clarified into a next step before they go stale."}
+        </p>
+        <button
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending}
+          className="btn-brand flex-shrink-0"
+          data-testid="button-clarify-inbox"
+        >
+          {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+          Clarify Inbox
+        </button>
+      </div>
+      {mutation.isError && (
+        <p className="text-[12px] text-destructive mt-2">Couldn’t clarify Inbox. Try again.</p>
+      )}
+      {result && (
+        <div className="mt-3 space-y-2" data-testid="clarify-inbox-result">
+          <p className="text-[12px] text-muted-foreground">
+            {result.notesClarified} thought{result.notesClarified !== 1 ? "s" : ""} ·{" "}
+            <span className="font-semibold text-foreground">{result.tasksCreated}</span> next action
+            {result.tasksCreated !== 1 ? "s" : ""}
+            {result.deferred > 0 ? ` · ${result.deferred} not now` : ""}
+          </p>
+          {result.cards.map((card, i) => (
+            <ActionPromptCard key={`${card.sourceId}-${i}`} card={card} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResurfaceSection() {
+  const { data, isLoading, error } = useQuery<DailyResurface>({
+    queryKey: ["/api/resurface"],
+    staleTime: 900000,
+  });
+  const [heldBackOpen, setHeldBackOpen] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="bg-card border border-card-border rounded-xl p-5 mb-6 animate-fade-in delay-2">
+        <Skeleton className="h-5 w-48 mb-3" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div
+        className="bg-card border border-card-border rounded-xl px-5 py-4 mb-6 animate-fade-in delay-2"
+        data-testid="resurface-error"
+      >
+        <p className="text-[13px] text-muted-foreground">
+          Couldn’t load today’s resurface. Standup below is still the full picture.
+        </p>
+      </div>
+    );
+  }
+
+  const overflow = data.lead === "inbox_overflow";
+
+  return (
+    <div
+      className={`bg-card border rounded-xl overflow-hidden mb-6 animate-fade-in delay-2 ${
+        overflow ? "border-destructive/40" : "border-card-border"
+      }`}
+      data-testid="resurface-section"
+      data-lead={data.lead}
+    >
+      <div className="px-5 py-3.5 border-b border-card-border">
+        <div className="flex items-center gap-2 mb-1">
+          {overflow ? (
+            <AlertTriangle className="w-4 h-4 text-destructive" />
+          ) : (
+            <RotateCcw className="w-4 h-4 text-primary" />
+          )}
+          <span
+            className={`font-display text-sm font-semibold ${overflow ? "text-destructive" : ""}`}
+            data-testid="resurface-headline"
+          >
+            {data.headline}
+          </span>
+        </div>
+        <p className="text-[13px] text-muted-foreground leading-relaxed" data-testid="resurface-summary">
+          {data.summary}
+        </p>
+      </div>
+
+      <InboxMeter count={data.inbox.count} cap={data.inbox.cap} overflow={overflow} />
+
+      {data.inbox.count > 0 ? <ClarifyInboxBar overflow={overflow} /> : null}
+
+      {overflow ? (
+        <>
+          <div className="px-5 py-2.5 bg-destructive/5 border-b border-card-border flex items-center gap-2">
+            <Inbox className="w-3.5 h-3.5 text-destructive" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-destructive">
+              Process Inbox first
+            </span>
+          </div>
+          {data.inbox.items.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-muted-foreground">Inbox is empty.</p>
+          ) : (
+            <ul data-testid="resurface-inbox-list">
+              {data.inbox.items.map((item, i) => (
+                <ResurfaceItemRow
+                  key={item.id}
+                  item={item}
+                  testId={`resurface-inbox-${i}`}
+                  danger
+                />
+              ))}
+            </ul>
+          )}
+          {(data.openToday.length > 0 || data.stale.length > 0) && (
+            <div className="border-t border-card-border">
+              <button
+                onClick={() => setHeldBackOpen(!heldBackOpen)}
+                className="w-full px-5 py-2.5 flex items-center justify-between text-[12px] text-muted-foreground hover:bg-muted/30 transition-colors"
+                data-testid="toggle-held-back"
+              >
+                <span>Held back until Inbox is under {data.inbox.cap}</span>
+                {heldBackOpen ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </button>
+              {heldBackOpen && (
+                <div data-testid="resurface-held-back">
+                  {data.openToday.map((item, i) => (
+                    <ResurfaceItemRow key={item.id} item={item} testId={`resurface-held-today-${i}`} />
+                  ))}
+                  {data.stale.map((item, i) => (
+                    <ResurfaceItemRow
+                      key={item.id}
+                      item={item}
+                      testId={`resurface-held-stale-${i}`}
+                      danger
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="px-5 py-2.5 border-b border-card-border flex items-center gap-2">
+            <ClipboardList className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+              Open today
+            </span>
+          </div>
+          {data.openToday.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-muted-foreground text-center">Nothing genuinely open today</p>
+          ) : (
+            <ul data-testid="resurface-today-list">
+              {data.openToday.map((item, i) => (
+                <ResurfaceItemRow key={item.id} item={item} testId={`resurface-today-${i}`} />
+              ))}
+            </ul>
+          )}
+          {data.stale.length > 0 && (
+            <>
+              <div className="px-5 py-2.5 border-y border-card-border flex items-center gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-destructive">
+                  Stale
+                </span>
+              </div>
+              <ul data-testid="resurface-stale-list">
+                {data.stale.map((item, i) => (
+                  <ResurfaceItemRow
+                    key={item.id}
+                    item={item}
+                    testId={`resurface-stale-${i}`}
+                    danger
+                  />
+                ))}
+              </ul>
+            </>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -632,7 +904,7 @@ function VoiceNoteProcessorSection() {
             <button
               onClick={() => mutation.mutate()}
               disabled={unprocessedCount === 0}
-              className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              className="btn-brand"
               data-testid="button-process-voice-notes"
             >
               <Zap className="w-3.5 h-3.5" />
@@ -646,7 +918,7 @@ function VoiceNoteProcessorSection() {
           <div className="flex items-center gap-3 py-2">
             <Loader2 className="w-4 h-4 text-primary animate-spin" />
             <p className="text-[13px] text-muted-foreground">
-              Reading voice notes and extracting tasks…
+              Reading voice notes and turning thoughts into next actions…
             </p>
           </div>
         )}
@@ -659,7 +931,7 @@ function VoiceNoteProcessorSection() {
             </p>
             <button
               onClick={() => mutation.mutate()}
-              className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1.5"
+              className="btn-brand"
               data-testid="button-retry-process"
             >
               Retry
@@ -699,20 +971,32 @@ function VoiceNoteProcessorSection() {
                   {detail.tasksCreated.map((task, i) => (
                     <li
                       key={i}
-                      className="px-4 py-2 border-b border-card-border last:border-b-0 flex items-center gap-2.5"
+                      className="px-4 py-2 border-b border-card-border last:border-b-0"
                       data-testid={`extracted-task-${detail.id}-${i}`}
                     >
-                      <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                      <span className="text-[12px] flex-1 min-w-0 truncate">{task.name}</span>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <TypeBadge type={task.type} />
-                        <PriorityBadgeSmall priority={task.priority} />
-                        {task.project && (
-                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]">
-                            {task.project}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-2.5">
+                        <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                        <span className="text-[12px] flex-1 min-w-0 truncate">{task.name}</span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {task.decision === "not_now" ? (
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded text-muted-foreground bg-muted">
+                              Not now
+                            </span>
+                          ) : null}
+                          <TypeBadge type={task.type} />
+                          <PriorityBadgeSmall priority={task.priority} />
+                          {task.project && (
+                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                              {task.project}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      {task.definitionOfDone ? (
+                        <p className="text-[11px] text-muted-foreground ml-6 mt-1">
+                          Done when: {task.definitionOfDone}
+                        </p>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -817,7 +1101,7 @@ export default function Standup() {
     <div className="h-screen bg-background overflow-y-auto custom-scrollbar" style={{ overscrollBehavior: "contain" }}>
       <div className="max-w-[800px] mx-auto px-6 py-8">
         {/* Navigation */}
-        <StandupNav />
+        <AppNav />
 
         {/* Header */}
         <div className="mb-8 animate-fade-in delay-1">
@@ -832,6 +1116,9 @@ export default function Standup() {
             {data.date}
           </p>
         </div>
+
+        {/* Reliable return — Inbox overflow leads, otherwise the short open/stale list */}
+        <ResurfaceSection />
 
         {/* Quick Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

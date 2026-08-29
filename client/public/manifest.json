@@ -4,8 +4,8 @@
   "description": "Personal operating system for strategy, tasks, and insight",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#0B0D12",
+  "theme_color": "#0B0D12",
   "orientation": "any",
   "icons": [
     {

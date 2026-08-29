@@ -27,15 +27,15 @@ function getNotionKey(): string {
 }
 
 // Database IDs (set via env or fallback to Jake's workspace)
-function getNotesDbId(): string {
+export function getNotesDbId(): string {
   return process.env.NOTION_NOTES_DB_ID || "592d777bf7438256ad348129ae94a20d";
 }
 
-function getTasksDbId(): string {
+export function getTasksDbId(): string {
   return process.env.NOTION_TASKS_DB_ID || "6bfd777bf7438394a98c01400b00f442";
 }
 
-async function notionFetch(endpoint: string, options: RequestInit = {}): Promise<any> {
+export async function notionFetch(endpoint: string, options: RequestInit = {}): Promise<any> {
   const res = await fetch(`${NOTION_API}${endpoint}`, {
     ...options,
     headers: {
@@ -58,7 +58,7 @@ async function notionFetch(endpoint: string, options: RequestInit = {}): Promise
 const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL = 1_800_000; // 30 minutes
 
-async function cached<T>(key: string, fn: () => Promise<T>, ttl: number = CACHE_TTL): Promise<T> {
+export async function cached<T>(key: string, fn: () => Promise<T>, ttl: number = CACHE_TTL): Promise<T> {
   const entry = cache.get(key);
   if (entry && Date.now() - entry.ts < ttl) {
     return entry.data as T;
@@ -68,6 +68,10 @@ async function cached<T>(key: string, fn: () => Promise<T>, ttl: number = CACHE_
   return data;
 }
 
+export function invalidateCache(key: string): void {
+  cache.delete(key);
+}
+
 // --- Extract page ID helpers ---
 function extractPageId(urlOrId: string): string {
   const match = urlOrId.match(/([a-f0-9]{32})$/);
@@ -75,13 +79,13 @@ function extractPageId(urlOrId: string): string {
   return urlOrId.replace(/-/g, "");
 }
 
-function formatUuid(id: string): string {
+export function formatUuid(id: string): string {
   const clean = id.replace(/-/g, "");
   return `${clean.slice(0, 8)}-${clean.slice(8, 12)}-${clean.slice(12, 16)}-${clean.slice(16, 20)}-${clean.slice(20)}`;
 }
 
 // --- Notion property extractors ---
-function getTitle(props: any, propName: string): string {
+export function getTitle(props: any, propName: string): string {
   const prop = props[propName];
   if (!prop || !prop.title) return "";
   return prop.title.map((t: any) => t.plain_text || "").join("");
@@ -93,13 +97,13 @@ function getRichText(props: any, propName: string): string {
   return prop.rich_text.map((t: any) => t.plain_text || "").join("");
 }
 
-function getSelect(props: any, propName: string): string {
+export function getSelect(props: any, propName: string): string {
   const prop = props[propName];
   if (!prop || !prop.select) return "";
   return prop.select.name || "";
 }
 
-function getStatus(props: any, propName: string): string {
+export function getStatus(props: any, propName: string): string {
   const prop = props[propName];
   if (!prop || !prop.status) return "";
   return prop.status.name || "";
@@ -111,16 +115,48 @@ function getNumber(props: any, propName: string): number | null {
   return prop.number;
 }
 
-function getDate(props: any, propName: string): string | null {
+export function getDate(props: any, propName: string): string | null {
   const prop = props[propName];
   if (!prop || !prop.date) return null;
   return prop.date.start || null;
 }
 
-function getRelationIds(props: any, propName: string): string[] {
+export function getRelationIds(props: any, propName: string): string[] {
   const prop = props[propName];
   if (!prop || !prop.relation) return [];
   return prop.relation.map((r: any) => r.id.replace(/-/g, ""));
+}
+
+export function getCheckbox(props: any, propName: string): boolean {
+  const prop = props[propName];
+  return !!(prop && prop.checkbox);
+}
+
+export async function queryDatabasePages(
+  dbId: string,
+  body: Record<string, unknown>,
+  maxPages = 5,
+): Promise<any[]> {
+  const uuid = formatUuid(dbId);
+  let allResults: any[] = [];
+  let startCursor: string | undefined;
+  let pages = 0;
+
+  do {
+    const payload: Record<string, unknown> = { page_size: 100, ...body };
+    if (startCursor) payload.start_cursor = startCursor;
+
+    const response = await notionFetch(`/databases/${uuid}/query`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    allResults = allResults.concat(response.results || []);
+    startCursor = response.has_more ? response.next_cursor : undefined;
+    pages += 1;
+  } while (startCursor && pages < maxPages);
+
+  return allResults;
 }
 
 function getCreatedTime(props: any): string {
@@ -637,10 +673,10 @@ export async function getTasksForVoiceNote(voiceNoteId: string): Promise<TaskIte
 const PROJECTS_DB_ID = "f7cd777bf74383818c5c8152d47dbf1f";
 const PROJECTS_VIEW_ID = "c46d777b-f743-83ca-8031-88dcb99b88a3";
 const TASKS_DB_ID = "6bfd777bf7438394a98c01400b00f442";
-const TASKS_ACTIVE_VIEW_ID = "b57d777b-f743-8353-9302-084e5c538a60";
+export const TASKS_ACTIVE_VIEW_ID = "b57d777b-f743-8353-9302-084e5c538a60";
 const TASKS_COMPLETE_VIEW_ID = "0a8d777b-f743-83e8-b14f-888fe9865b80";
 
-function callNotionCli(toolName: string, args: Record<string, unknown>): any {
+export function callNotionCli(toolName: string, args: Record<string, unknown>): any {
   const params = JSON.stringify({ source_id: "notion_mcp", tool_name: toolName, arguments: args });
   const escaped = params.replace(/'/g, "'\\'");
   return JSON.parse(
@@ -648,7 +684,7 @@ function callNotionCli(toolName: string, args: Record<string, unknown>): any {
   );
 }
 
-function extractIdFromUrl(url: string): string {
+export function extractIdFromUrl(url: string): string {
   const match = url.match(/([a-f0-9]{32})$/);
   return match ? match[1] : url.replace(/-/g, "");
 }
@@ -893,7 +929,7 @@ export async function listProjects(): Promise<ProjectHealth[]> {
 
 const STANDUP_CACHE_TTL = 1_800_000; // 30 minutes
 
-function getAWSTDates() {
+export function getAWSTDates() {
   // Australia/Perth is UTC+8
   const nowUtc = Date.now();
   const awstOffset = 8 * 60 * 60 * 1000;
@@ -1687,8 +1723,11 @@ export async function createTaskInNotion(
   voiceNoteId: string,
   projectId: string | null,
   projectUrl: string | null,
+  extras?: { due?: string | null; children?: any[] },
 ): Promise<void> {
   const hasApiKey = !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+  const due = extras?.due || null;
+  const children = extras?.children?.length ? extras.children : undefined;
 
   if (hasApiKey) {
     await notionFetch(`/pages`, {
@@ -1696,13 +1735,17 @@ export async function createTaskInNotion(
       body: JSON.stringify({
         parent: { database_id: formatUuid("6bfd777bf7438394a98c01400b00f442") },
         properties: {
-          "Name": { title: [{ text: { content: taskName } }] },
+          "Name": { title: [{ text: { content: taskName.slice(0, 200) } }] },
           "Status": { status: { name: "To Do" } },
           "P/I": { select: { name: taskType } },
           "Priority": { status: { name: priority } },
-          "Notes": { relation: [{ id: formatUuid(voiceNoteId) }] },
+          ...(voiceNoteId
+            ? { "Notes": { relation: [{ id: formatUuid(voiceNoteId) }] } }
+            : {}),
           ...(projectId ? { "Project": { relation: [{ id: formatUuid(projectId) }] } } : {}),
+          ...(due ? { "Due": { date: { start: due } } } : {}),
         },
+        ...(children ? { children } : {}),
       }),
     });
   } else {
@@ -1714,8 +1757,9 @@ export async function createTaskInNotion(
           "Status": "To Do",
           "P/I": taskType,
           "Priority": priority,
-          "Notes": JSON.stringify([`https://www.notion.so/${voiceNoteId}`]),
+          ...(voiceNoteId ? { "Notes": JSON.stringify([`https://www.notion.so/${voiceNoteId}`]) } : {}),
           ...(projectUrl ? { "Project": JSON.stringify([projectUrl]) } : {}),
+          ...(due ? { "Due": due } : {}),
         },
       }],
     });

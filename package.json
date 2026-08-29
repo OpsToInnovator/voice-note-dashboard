@@ -7,6 +7,9 @@
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
     "start": "node dist/index.cjs",
+    "resurface": "tsx server/resurfaceJob.ts",
+    "resurface:prod": "node dist/resurface.cjs",
+    "test": "tsx --test shared/resurface.test.ts shared/actionFrame.test.ts shared/frameworks.test.ts shared/thoughtOs.test.ts shared/goalCoach.test.ts",
     "check": "tsc"
   },
   "dependencies": {

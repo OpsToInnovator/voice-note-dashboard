@@ -9,6 +9,8 @@ import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
 import Standup from "@/pages/standup";
 import Intelligence from "@/pages/intelligence";
+import Goals from "@/pages/frameworks";
+import Think from "@/pages/think";
 import NotFound from "@/pages/not-found";
 
 function AppRouter() {
@@ -16,8 +18,10 @@ function AppRouter() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/projects" component={Projects} />
+      <Route path="/think" component={Think} />
       <Route path="/standup" component={Standup} />
       <Route path="/intelligence" component={Intelligence} />
+      <Route path="/goals" component={Goals} />
       <Route component={NotFound} />
     </Switch>
   );

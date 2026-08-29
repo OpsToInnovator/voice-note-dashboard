@@ -1,8 +1,14 @@
 import OpenAI from "openai";
 import type { IntelligenceContext, IntelligenceReport, TitledNote, ProcessedVoiceNote, ProcessingResult, ProofPanel } from "../shared/schema";
-import { findUntitledNotes, updateNoteTitle, getUnprocessedVoiceNotes, getVoiceNoteContent, getProjectLookup, createTaskInNotion } from "./notion";
+import { findUntitledNotes, updateNoteTitle, getUnprocessedVoiceNotes, getVoiceNoteContent, getProjectLookup } from "./notion";
+import { extractActionCards, writeActionCardAsTask } from "./actionFrame";
 
-const client = new OpenAI();
+let client: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!client) client = new OpenAI();
+  return client;
+}
 
 // Cache for LLM response (10 min)
 let cachedReport: { data: IntelligenceReport; ts: number } | null = null;
@@ -76,7 +82,7 @@ Based on ALL of this data, provide:
 
 4. MOMENTUM WIN: Something he's done well recently that he should build on. Name the specific accomplishment and how to leverage it.
 
-5. WEEKLY PRIORITY: Looking at his goals and project health, what should be his #1 priority this week beyond today?
+5. WEEKLY PRIORITY: Looking at his goals and project health, what should be his #1 priority this week beyond today? Name one observable next action (verb + object, 10–30 minutes) and whether to keep, improve, delegate, automate, or stop the current approach.
 
 6. SYSTEM AUDIT: Act as a strategic advisor auditing the structural integrity of Jake's second brain. For EACH project and goal, evaluate honestly:
    - Is this actually a project (defined outcome, concrete tasks, timeline)? Or is it an idea/aspiration disguised as a project?
@@ -104,7 +110,7 @@ Respond ONLY with a JSON object, no markdown, no code blocks:
   "summary": "One sentence summary of the overall recommendation"
 }`;
 
-  const response = await client.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     max_tokens: 4096,
     messages: [{ role: "user", content: prompt }],
@@ -192,73 +198,48 @@ export async function processVoiceNotes(): Promise<ProcessingResult> {
         continue;
       }
 
-      // Step 3: Send to GPT-4o for task extraction
-      const prompt = `You extract actionable tasks from voice note content and match them to existing projects.
-
-EXISTING PROJECTS:
-${projectNames.map(n => `- ${n}`).join("\n")}
-
-VOICE NOTE CONTENT:
-${content.slice(0, 4000)}
-
-Extract concrete, actionable tasks from this voice note. For each task:
-1. Write a clear task name (action-oriented, specific, max 10 words)
-2. Classify as "Process" (quick, delegatable, communication) or "Immersive" (focus work, deep thinking, creation)
-3. Match to the most relevant existing project from the list above, or suggest "NONE" if no project fits
-4. Assign priority: "High" (urgent, blocks other work, time-sensitive, directly tied to active goals), "Medium" (important but not urgent, supports ongoing projects), or "Low" (nice to have, can be deferred)
-
-Only extract REAL action items — things that need to be done. Skip observations, reflections, and insights that aren't actionable.
-
-If the voice note has NO actionable tasks (it's purely a reflection or observation), return an empty array.
-
-Respond ONLY with JSON:
-{ "tasks": [{ "name": "...", "type": "Process|Immersive", "project": "Exact Project Name|NONE", "priority": "High|Medium|Low" }] }`;
-
-      const response = await client.chat.completions.create({
-        model: "gpt-4o",
-        max_tokens: 1024,
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      });
-
-      const rawText = response.choices?.[0]?.message?.content || "";
-      let parsed: { tasks: { name: string; type: string; project: string; priority: string }[] };
-      try {
-        parsed = JSON.parse(rawText);
-      } catch {
-        parsed = { tasks: [] };
-      }
-
-      const tasks = parsed.tasks || [];
+      // Step 3: Turn the thought into next-action cards (not a pile of intentions)
+      const cards = await extractActionCards(content, projectNames);
       const createdTasks: ProcessedVoiceNote["tasksCreated"] = [];
 
-      // Step 4: Create tasks in Notion
-      for (const task of tasks) {
+      for (const card of cards) {
         try {
-          const taskType = task.type === "Process" ? "Process" : "Immersive";
-          const priority = ["High", "Medium", "Low"].includes(task.priority) ? task.priority : "Medium";
-          const matchedProject = task.project && task.project !== "NONE"
-            ? projectLookup.get(task.project) || null
-            : null;
+          if (card.decision === "not_now") {
+            createdTasks.push({
+              name: card.nextStep || card.thought || "Not now",
+              type: card.type,
+              project: "",
+              priority: card.priority,
+              thought: card.thought,
+              whyItMatters: card.whyItMatters,
+              timeOrTrigger: card.timeOrTrigger,
+              definitionOfDone: card.definitionOfDone,
+              learnIfFails: card.learnIfFails,
+              due: card.due,
+              decision: "not_now",
+            });
+            continue;
+          }
 
-          await createTaskInNotion(
-            task.name,
-            taskType,
-            priority,
-            note.id,
-            matchedProject?.id || null,
-            matchedProject?.url || null,
-          );
+          const wrote = await writeActionCardAsTask(card, note.id, projectLookup);
+          if (!wrote) continue;
 
           createdTasks.push({
-            name: task.name,
-            type: taskType,
-            project: matchedProject ? task.project : "",
-            priority,
+            name: card.nextStep,
+            type: card.type,
+            project: card.project,
+            priority: card.priority,
+            thought: card.thought,
+            whyItMatters: card.whyItMatters,
+            timeOrTrigger: card.timeOrTrigger,
+            definitionOfDone: card.definitionOfDone,
+            learnIfFails: card.learnIfFails,
+            due: card.due,
+            decision: "act",
           });
           totalTasksCreated++;
         } catch (err) {
-          console.error(`Failed to create task "${task.name}":`, err);
+          console.error(`Failed to create action "${card.nextStep}":`, err);
         }
       }
 
@@ -296,7 +277,7 @@ export async function autoTitleNotes(): Promise<TitledNote[]> {
     const batch = untitled.slice(i, i + 3);
     const titlePromises = batch.map(async (note) => {
       try {
-        const response = await client.chat.completions.create({
+        const response = await getOpenAI().chat.completions.create({
           model: "gpt-4o",
           max_tokens: 100,
           messages: [
@@ -383,7 +364,7 @@ export async function generateProofPanel(): Promise<ProofPanel> {
     .map(t => `- ${t.name} (${t.type || "unclassified"}, project: ${t.project || "none"})`)
     .join("\n");
 
-  const response = await client.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     max_tokens: 2048,
     messages: [

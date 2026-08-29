@@ -2,6 +2,30 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup, gatherIntelligenceContext, classifyUnclassifiedTasks } from "./notion";
 import { generateIntelligence, autoTitleNotes, processVoiceNotes, getUnprocessedVoiceNoteCount, generateProofPanel } from "./intelligence";
+import { getDailyResurface, runResurfaceJob } from "./resurface";
+import { clarifyInbox } from "./actionFrame";
+import { applyFramework } from "./frameworks";
+import { processThought, thoughtCatalog } from "./thoughtOs";
+import { DEFAULT_BIG_GOAL_FRAMEWORK, FRAMEWORKS, GOAL_STACK, type FrameworkId } from "../shared/frameworks";
+import type { DailyStandup } from "../shared/schema";
+
+function fixtureStandup(): DailyStandup {
+  return {
+    date: "29 Aug 2026",
+    greeting: "Good morning",
+    completedYesterday: [],
+    dueToday: [{ name: "Send weekly update", type: "Process", project: "", priority: "High" }],
+    overdue: [{ name: "Renew domain", type: "Process", project: "", due: "2026-08-17", daysOverdue: 12 }],
+    projectHealth: { healthy: 2, attention: 1, stalled: 0, paused: 0, waiting: 0 },
+    recentVoiceNotes: [],
+    stats: {
+      completedYesterdayCount: 0,
+      dueTodayCount: 1,
+      overdueCount: 1,
+      activeProjects: 3,
+    },
+  };
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -22,6 +46,10 @@ export async function registerRoutes(
   // Unprocessed voice note count (MUST be before :id route)
   app.get("/api/voice-notes/unprocessed-count", async (_req, res) => {
     try {
+      if (process.env.RESURFACE_FIXTURE) {
+        res.json({ count: 0 });
+        return;
+      }
       const count = await getUnprocessedVoiceNoteCount();
       res.json({ count });
     } catch (err: any) {
@@ -60,11 +88,88 @@ export async function registerRoutes(
   // Daily standup briefing
   app.get("/api/standup", async (_req, res) => {
     try {
+      if (process.env.RESURFACE_FIXTURE) {
+        res.json(fixtureStandup());
+        return;
+      }
       const standup = await getDailyStandup();
       res.json(standup);
     } catch (err: any) {
       console.error("Error fetching standup:", err);
       res.status(500).json({ error: "Failed to fetch standup data", message: err.message });
+    }
+  });
+
+  // Daily resurface: open today + stale, or Inbox overflow if the graveyard cap is crossed
+  app.get("/api/resurface", async (_req, res) => {
+    try {
+      const report = await getDailyResurface();
+      res.json(report);
+    } catch (err: any) {
+      console.error("Error building daily resurface:", err);
+      res.status(500).json({ error: "Failed to build daily resurface", message: err.message });
+    }
+  });
+
+  // Cron/manual trigger — always reads buckets fresh and logs the short list
+  app.post("/api/resurface/run", async (_req, res) => {
+    try {
+      const report = await runResurfaceJob();
+      res.json(report);
+    } catch (err: any) {
+      console.error("Error running resurface job:", err);
+      res.status(500).json({ error: "Failed to run resurface job", message: err.message });
+    }
+  });
+
+  // Turn Inbox thoughts into next actions (or a conscious not-now)
+  app.post("/api/inbox/clarify", async (_req, res) => {
+    try {
+      const result = await clarifyInbox();
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error clarifying inbox:", err);
+      res.status(500).json({ error: "Failed to clarify inbox", message: err.message });
+    }
+  });
+
+  // Goal frameworks: catalog is code; apply fills a canvas that still ends in a next action
+  app.get("/api/frameworks", (_req, res) => {
+    res.json({
+      stack: GOAL_STACK,
+      frameworks: FRAMEWORKS,
+      defaultId: DEFAULT_BIG_GOAL_FRAMEWORK,
+    });
+  });
+
+  app.post("/api/frameworks/apply", async (req, res) => {
+    try {
+      const content = typeof req.body?.content === "string" ? req.body.content : "";
+      const frameworkId = (req.body?.frameworkId || "auto") as FrameworkId | "auto";
+      const result = await applyFramework(content, frameworkId);
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error applying framework:", err);
+      const status = /paste a goal/i.test(err.message || "") ? 400 : 500;
+      res.status(status).json({ error: "Failed to apply framework", message: err.message });
+    }
+  });
+
+  app.get("/api/thoughts/model", (_req, res) => {
+    res.json(thoughtCatalog());
+  });
+
+  app.post("/api/thoughts/process", async (req, res) => {
+    try {
+      const content = typeof req.body?.content === "string" ? req.body.content : "";
+      const confirmedMeaningId =
+        typeof req.body?.confirmedMeaningId === "string" ? req.body.confirmedMeaningId : null;
+      const result = await processThought(content, confirmedMeaningId);
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error processing thought:", err);
+      const status = /capture a thought/i.test(err.message || "") ? 400 : 500;
+      res.status(status).json({ error: "Failed to process thought", message: err.message });
     }
   });
 
@@ -127,6 +232,17 @@ export async function registerRoutes(
   // Proof Panel — evidence of progress
   app.get("/api/proof", async (_req, res) => {
     try {
+      if (process.env.RESURFACE_FIXTURE) {
+        res.json({
+          period: "",
+          totalWins: 0,
+          winsByProject: [],
+          winsByIdentity: [],
+          patternSignal: "",
+          tasks: [],
+        });
+        return;
+      }
       const proof = await generateProofPanel();
       res.json(proof);
     } catch (err: any) {

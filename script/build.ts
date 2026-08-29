@@ -42,18 +42,29 @@ async function buildAll() {
   ];
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
-  await esbuild({
-    entryPoints: ["server/index.ts"],
-    platform: "node",
+  const sharedServerBuild = {
+    platform: "node" as const,
     bundle: true,
-    format: "cjs",
-    outfile: "dist/index.cjs",
+    format: "cjs" as const,
     define: {
       "process.env.NODE_ENV": '"production"',
     },
     minify: true,
     external: externals,
-    logLevel: "info",
+    logLevel: "info" as const,
+  };
+
+  await esbuild({
+    entryPoints: ["server/index.ts"],
+    outfile: "dist/index.cjs",
+    ...sharedServerBuild,
+  });
+
+  console.log("building resurface job...");
+  await esbuild({
+    entryPoints: ["server/resurfaceJob.ts"],
+    outfile: "dist/resurface.cjs",
+    ...sharedServerBuild,
   });
 }
 
