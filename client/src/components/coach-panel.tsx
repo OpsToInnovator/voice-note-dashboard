@@ -2,13 +2,14 @@ import type { GoalCoaching, NoteLevel } from "@shared/goalCoach";
 import { verdictTag } from "@shared/goalCoach";
 
 function NoteTone({ level }: { level: NoteLevel }) {
+  const label = level === "stop" ? "Stop" : level === "warn" ? "Sharpen" : "Observable";
   const cls =
     level === "stop"
       ? "text-destructive"
       : level === "warn"
         ? "text-chart-3"
         : "text-muted-foreground";
-  return <span className={`text-[10px] font-semibold uppercase tracking-wider ${cls}`}>{verdictTag(level) || level}</span>;
+  return <span className={`text-[10px] font-semibold uppercase tracking-wider ${cls}`}>{label}</span>;
 }
 
 export function CoachPanel({ coach }: { coach: GoalCoaching | null | undefined }) {
