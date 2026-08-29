@@ -65,7 +65,7 @@ npm test
 
 ## Why the full app is open
 
-ApexForm Life’s commercial work (AFOS™, Paradigm, consulting) depends on trust in *how* a thought is routed — not on a louder chatbot. Publishing the whole personal app — screens, fixtures, tests — lets operators, researchers, and builders run the same thing Jake runs, then buy the hosted products when they need organisation-scale memory (AFOS™) or longitudinal iOS (Paradigm).
+ApexForm Life’s commercial work (AFOS™, Paradigm, consulting) depends on trust in *how* a thought is routed — not on a louder chatbot. Publishing the whole personal app — screens, fixtures, tests — lets operators, researchers, and builders run it themselves, then buy the hosted products when they need organisation-scale memory (AFOS™) or longitudinal iOS (Paradigm).
 
 Forks, papers, and talks should say **ApexForm Life**. Community copies should keep the preferred credit. Competing hosted products should pick their own product name and still link back. Details: [TRADEMARKS.md](TRADEMARKS.md).
 
