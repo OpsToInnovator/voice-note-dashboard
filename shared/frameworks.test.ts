@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lintActionName } from "./actionFrame.ts";
+import { CHANGE_THE_MODEL_STEP } from "./goalCoach.ts";
 import {
   FRAMEWORKS,
   DEFAULT_BIG_GOAL_FRAMEWORK,
+  applyCoachToPlan,
   fixturePlan,
   isPlanningAsAvoidance,
   lintPlan,
@@ -57,6 +59,11 @@ describe("recommendFramework", () => {
     assert.equal(rec.id, "action_frame");
   });
 
+  it("routes a $1M income target to a 12-week sprint, not a single action", () => {
+    const rec = recommendFramework("I earn 1 million dollars");
+    assert.equal(rec.id, "twelve_week_sprint");
+  });
+
   it("keeps a manual choice and notes what auto-route would have done", () => {
     const rec = resolveFrameworkId("I overthink outreach and postpone sending it", "goal_canvas");
     assert.equal(rec.id, "goal_canvas");
@@ -98,5 +105,18 @@ describe("plan contract", () => {
     assert.ok(plan.obstaclePlan?.trigger);
     assert.ok(plan.obstaclePlan?.response);
     assert.equal(plan.lint.weak, false);
+  });
+
+  it("overrides volume with a change-the-model action when goal maths stop", () => {
+    const plan = applyCoachToPlan(
+      fixturePlan("twelve_week_sprint", "2026-08-29"),
+      "I earn 1 million dollars",
+      "2026-08-29",
+    );
+    assert.equal(plan.coach?.feasibility?.verdict?.level, "stop");
+    assert.equal(plan.firstAction.nextStep, CHANGE_THE_MODEL_STEP);
+    assert.equal(lintActionName(plan.firstAction.nextStep).weak, false);
+    assert.ok(plan.obstaclePlan?.trigger);
+    assert.match(plan.review, /change the model/i);
   });
 });

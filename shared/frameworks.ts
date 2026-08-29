@@ -11,6 +11,13 @@ import {
   type ActionCard,
   type ActionLint,
 } from "./actionFrame";
+import {
+  CHANGE_THE_MODEL_STEP,
+  assessGoal,
+  feasibilityBlocksExecute,
+  obstacleToIfThen,
+  type GoalCoaching,
+} from "./goalCoach";
 
 export const GOAL_STACK = [
   { id: "vision", label: "Vision", horizon: "1–3+ years", question: "What future am I building?" },
@@ -55,6 +62,7 @@ export interface FrameworkPlan {
   obstaclePlan: { trigger: string; response: string } | null;
   review: string;
   lint: ActionLint;
+  coach: GoalCoaching | null;
 }
 
 export interface FrameworkRecommendation {
@@ -200,6 +208,7 @@ const ROUTER: { id: FrameworkId; reason: string; patterns: RegExp[] }[] = [
     reason: "The ambition is too remote — one 12-week outcome with lead measures you control.",
     patterns: [
       /\b(12[- ]week|twelve week|too (big|distant|remote)|this year|yearly|annual ambition|sprint)\b/i,
+      /\b(\d+\s*million|i earn\b|revenue target)\b/i,
     ],
   },
   {
@@ -325,6 +334,76 @@ export function normalizePlan(
     firstAction,
     obstaclePlan,
     review: (raw.review || "Every Friday, check evidence and choose: continue, adapt, or stop.").trim(),
+    coach: null,
+  };
+
+  return { ...draft, lint: lintPlan(draft) };
+}
+
+export function applyCoachToPlan(plan: FrameworkPlan, goalText: string, todayStr: string): FrameworkPlan {
+  const coach = assessGoal(goalText);
+  if (!coach) return { ...plan, coach: null };
+
+  let obstaclePlan = plan.obstaclePlan;
+  if (!obstaclePlan && coach.obstacles[0]) {
+    obstaclePlan = obstacleToIfThen(coach.obstacles[0]);
+  }
+
+  let layers = plan.layers.map((layer) => ({ ...layer }));
+  if (plan.frameworkId === "twelve_week_sprint" && coach.phases.length >= 3) {
+    const phaseByKey: Record<string, (typeof coach.phases)[number]> = {
+      establish: coach.phases[0],
+      build: coach.phases[1],
+      validate: coach.phases[2],
+    };
+    layers = layers.map((layer) => {
+      const phase = phaseByKey[layer.key];
+      if (phase && !layer.value.trim()) {
+        return { ...layer, value: `${phase.name}: ${phase.focus}. Done when: ${phase.done}` };
+      }
+      if (layer.key === "leads" && !layer.value.trim()) {
+        return { ...layer, value: coach.leadMeasures.join("; ") };
+      }
+      return layer;
+    });
+  }
+  if (plan.frameworkId === "backward_planning") {
+    layers = layers.map((layer) =>
+      layer.key === "final" && !layer.value.trim() ? { ...layer, value: coach.chainSeed } : layer,
+    );
+  }
+
+  let firstAction = plan.firstAction;
+  let review = plan.review;
+  let commitments = [...plan.commitments];
+  if (feasibilityBlocksExecute(coach)) {
+    firstAction = action(
+      todayStr,
+      CHANGE_THE_MODEL_STEP,
+      "Today after client work",
+      "One page with price, hours, and a non-hours-scaled alternative",
+      {
+        thought: goalText,
+        whyItMatters: "The current model cannot physically hit the target. Volume is not the fix.",
+        learnIfFails: "Which lever — price, hours, productisation, or capacity — is actually movable",
+      },
+    );
+    review = `Change the model first. ${coach.feasibility?.verdict?.text || ""} Then choose: ${coach.reviewRules.join("; ")}`;
+    if (!commitments.some((c) => /productis|price|capacity|model/i.test(c))) {
+      commitments = ["Name the binding constraint from the maths", "Write one non-hours-scaled alternative", ...commitments].slice(0, 5);
+    }
+  }
+
+  const draft = {
+    frameworkId: plan.frameworkId,
+    title: plan.title,
+    whyThisFramework: plan.whyThisFramework,
+    layers,
+    commitments,
+    firstAction,
+    obstaclePlan,
+    review,
+    coach,
   };
 
   return { ...draft, lint: lintPlan(draft) };
@@ -462,6 +541,11 @@ export const SAMPLE_GOALS: { label: string; frameworkId: FrameworkId; text: stri
     label: "Captured thought",
     frameworkId: "action_frame",
     text: "I should improve my consulting offer.",
+  },
+  {
+    label: "$1M income",
+    frameworkId: "twelve_week_sprint",
+    text: "I earn 1 million dollars",
   },
 ];
 

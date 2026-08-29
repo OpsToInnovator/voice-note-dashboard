@@ -21,6 +21,7 @@ import {
   CalendarClock,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { CoachPanel } from "@/components/coach-panel";
 
 function GoalsNav() {
   const [location] = useLocation();
@@ -213,6 +214,8 @@ function PlanView({ result }: { result: ApplyFrameworkResult }) {
         ) : null}
       </div>
 
+      <CoachPanel coach={plan.coach} />
+
       {plan.obstaclePlan ? (
         <div className="bg-card border border-card-border rounded-xl px-5 py-4" data-testid="plan-if-then">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
@@ -362,7 +365,7 @@ export default function Goals() {
                   setResult(null);
                 }}
                 className="text-[11px] px-2 py-1 rounded-md bg-muted text-muted-foreground hover:text-foreground"
-                data-testid={`sample-goal-${sample.frameworkId}`}
+                data-testid={`sample-goal-${sample.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
               >
                 {sample.label}
               </button>

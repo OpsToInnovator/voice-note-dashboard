@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lintActionName } from "./actionFrame.ts";
+import { CHANGE_THE_MODEL_STEP } from "./goalCoach.ts";
 import {
   checkAgency,
   classifyFamily,
@@ -63,6 +64,16 @@ describe("thought operating system", () => {
     assert.equal(record.destination, "EXECUTE");
     assert.ok(record.firstAction);
     assert.equal(lintActionName(record.firstAction.nextStep).weak, false);
+  });
+
+  it("sends a $1M income goal to DECIDE when services maths hit a capacity stop", () => {
+    const record = fixtureThought("I earn 1 million dollars", "2026-08-29");
+    assert.equal(record.family, "goal");
+    assert.equal(record.tier, 3);
+    assert.equal(record.destination, "DECIDE");
+    assert.equal(record.coach?.feasibility?.verdict?.level, "stop");
+    assert.equal(record.firstAction?.nextStep, CHANGE_THE_MODEL_STEP);
+    assert.ok(record.container?.guardrails.some((g) => /do not scale/i.test(g)));
   });
 
   it("routes recurring avoidance to the behavioural kit, not a new strategy project", () => {

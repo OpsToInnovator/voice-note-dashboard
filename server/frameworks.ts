@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import {
+  applyCoachToPlan,
   buildFrameworkPrompt,
   fixturePlan,
   normalizePlan,
@@ -31,7 +32,7 @@ export async function applyFramework(
   if (process.env.RESURFACE_FIXTURE) {
     return {
       recommendation,
-      plan: fixturePlan(recommendation.id, todayStr),
+      plan: applyCoachToPlan(fixturePlan(recommendation.id, todayStr), source, todayStr),
       usedFixture: true,
     };
   }
@@ -53,7 +54,7 @@ export async function applyFramework(
 
   return {
     recommendation,
-    plan: normalizePlan(recommendation.id, parsed, todayStr),
+    plan: applyCoachToPlan(normalizePlan(recommendation.id, parsed, todayStr), source, todayStr),
     usedFixture: false,
   };
 }

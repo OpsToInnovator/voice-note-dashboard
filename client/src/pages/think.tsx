@@ -23,6 +23,7 @@ import {
   Scale,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { CoachPanel } from "@/components/coach-panel";
 
 function ThinkNav() {
   const [location] = useLocation();
@@ -289,6 +290,8 @@ function RecordView({
           </p>
         </div>
       ) : null}
+
+      <CoachPanel coach={record.coach} />
 
       {record.firstAction ? (
         <div className="bg-card border border-primary/30 rounded-xl px-5 py-4" data-testid="thought-first-action">

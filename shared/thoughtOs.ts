@@ -10,6 +10,13 @@ import {
   type FrameworkPlan,
   type FrameworkRecommendation,
 } from "./frameworks";
+import {
+  CHANGE_THE_MODEL_STEP,
+  assessGoal,
+  feasibilityBlocksExecute,
+  parseMoneyTarget,
+  type GoalCoaching,
+} from "./goalCoach";
 
 export const OPERATING_SEQUENCE = [
   { id: "capture", label: "Capture", question: "What was said, unformatted?" },
@@ -91,9 +98,9 @@ export const STRESS_KITS: Record<ProblemFamily, string[]> = {
   ],
   goal: [
     "Outcome definition",
+    "Goal maths / feasibility",
     "Leading indicators",
-    "SMART / OKR principles",
-    "Implementation intentions",
+    "Named obstacles / if–then",
     "Review cadence",
   ],
   capture: ["Thought → Decision → Next action → Evidence → Learning"],
@@ -173,6 +180,8 @@ export interface ThoughtRecord {
   plan: FrameworkPlan | null;
   firstAction: ActionCard | null;
   learning: LearningFrame;
+  /** Goal Coach engine — type, outcome lint, feasibility maths, named obstacles. */
+  coach: GoalCoaching | null;
   usedFixture: boolean;
 }
 
@@ -180,10 +189,10 @@ const NO_AGENCY =
   /\b(weather|can't control|cannot control|out of my hands|nothing i can do|the market will do|other people (will|always)|fate|luck)\b/i;
 
 const DEVELOP_AGENCY =
-  /\b(we should|i should|i will|i can|change how|redesign|price|offer|send|book|write|interview|build|decide|test)\b/i;
+  /\b(we should|i should|i will|i can|i earn|change how|redesign|price|offer|send|book|write|interview|build|decide|test|million|income)\b/i;
 
 const TIER_3 =
-  /\b(pric(?:e|ing)|fire|legal|contract|hire|spend|\$|revenue|irreversible|resign|relationship|strategy|architecture|equity|litigation)\b/i;
+  /\b(pric(?:e|ing)|fire|legal|contract|hire|spend|\$|revenue|million|income|irreversible|resign|relationship|strategy|architecture|equity|litigation)\b/i;
 
 const TIER_1 =
   /\b(send|record|file|log|schedule|remind|draft a message|invite|book a time)\b/i;
@@ -211,7 +220,7 @@ const FAMILY_RULES: { id: ProblemFamily; patterns: RegExp[] }[] = [
   },
   {
     id: "goal",
-    patterns: [/\b(by \d|12[- ]week|this year|goal|milestone|i will have|sprint)\b/i],
+    patterns: [/\b(by \d|12[- ]week|this year|goal|milestone|i will have|sprint|million|i earn|income target)\b/i],
   },
 ];
 
@@ -395,8 +404,9 @@ export function normalizeThought(
 
   let plan = raw.plan ?? null;
   let firstAction = raw.firstAction ? normalizeCard(raw.firstAction, todayStr) : plan?.firstAction || null;
+  const coach = raw.coach !== undefined ? raw.coach : assessGoal(original);
 
-  const gate = decideDestination({
+  let gate = decideDestination({
     agency,
     substance,
     family,
@@ -406,6 +416,35 @@ export function normalizeThought(
     firstAction,
     tier,
   });
+
+  const meaningsOpen = substance.verdict === "reconstruct" && !confirmedMeaningId;
+  if (
+    feasibilityBlocksExecute(coach) &&
+    !meaningsOpen &&
+    (gate.destination === "EXECUTE" || gate.destination === "EXPLORE")
+  ) {
+    gate = {
+      destination: "DECIDE",
+      reason: `Goal maths say stop: ${coach!.feasibility!.verdict!.text} Change the model before executing volume.`,
+    };
+  }
+
+  if (feasibilityBlocksExecute(coach) && gate.destination !== "DELETE" && gate.destination !== "STORE") {
+    firstAction = normalizeCard(
+      {
+        decision: "act",
+        thought: original,
+        whyItMatters: "The current model cannot physically hit the target. Volume is not the fix.",
+        nextStep: CHANGE_THE_MODEL_STEP,
+        timeOrTrigger: "Today after client work",
+        definitionOfDone: "One page with price, hours, and a non-hours-scaled alternative",
+        learnIfFails: "Which lever — price, hours, productisation, or capacity — is actually movable",
+        type: "Immersive",
+        priority: "High",
+      },
+      todayStr,
+    );
+  }
 
   if (gate.destination === "DELETE" || gate.destination === "STORE") {
     plan = null;
@@ -420,6 +459,29 @@ export function normalizeThought(
 
   const keepWork = gate.destination === "EXPLORE" || gate.destination === "DECIDE" || gate.destination === "EXECUTE";
 
+  let container = keepWork ? raw.container ?? null : null;
+  if (keepWork && feasibilityBlocksExecute(coach)) {
+    const extra = "Do not scale outreach or volume until the model clears the feasibility stop";
+    if (container) {
+      if (!container.guardrails.includes(extra)) {
+        container = { ...container, guardrails: [...container.guardrails, extra] };
+      }
+    } else {
+      container = {
+        objective: "Decide how the model changes so the target is physically possible.",
+        sequence: [
+          "Name the binding constraint from the maths",
+          "Choose: raise price, cut delivery hours, productise, add capacity, or drop the target",
+          "Write the chosen model on one page",
+        ],
+        guardrails: [extra],
+        cadence: "Weekly 20-minute model review",
+        review: (coach?.reviewRules || []).slice(0, 3).join("; "),
+        exit: "A model that clears capacity, or a conscious not-now on the target",
+      };
+    }
+  }
+
   return {
     original,
     interpretation,
@@ -433,13 +495,14 @@ export function normalizeThought(
     destination: gate.destination,
     destinationReason: gate.reason,
     tier,
-    container: keepWork ? raw.container ?? null : null,
+    container,
     plan,
     firstAction: keepWork ? firstAction : null,
     learning: {
       expected: raw.learning?.expected || "",
       questions: raw.learning?.questions?.length ? raw.learning.questions : learningQuestions(gate.destination),
     },
+    coach,
     usedFixture: Boolean(raw.usedFixture),
   };
 }
@@ -464,6 +527,10 @@ export const SAMPLE_THOUGHTS: { label: string; text: string }[] = [
   {
     label: "Overthink outreach",
     text: "I want to book five discovery calls this month but I overthink the wording of outreach and postpone sending it.",
+  },
+  {
+    label: "$1M income",
+    text: "I earn 1 million dollars",
   },
 ];
 
@@ -532,6 +599,42 @@ export function fixtureThought(
         learning: {
           expected: "A good-enough message still produces conversations.",
           questions: learningQuestions("EXECUTE"),
+        },
+        usedFixture: true,
+      },
+      todayStr,
+    );
+  }
+
+  if (parseMoneyTarget(t) && /million|i earn|income/i.test(t)) {
+    return normalizeThought(
+      {
+        original: t,
+        interpretation: {
+          parts: [
+            { kind: "idea", text: "A large income target stated as an achieved result." },
+            { kind: "assumption", text: "Hours-based delivery can scale to that number." },
+            { kind: "decision", text: "If the maths fail, the model has to change — price, hours, productisation, or capacity." },
+          ],
+          missingEvidence: "Whether price, delivery hours, or productisation can move enough to clear capacity.",
+        },
+        family: "goal",
+        framework: recommendFramework(t),
+        container: {
+          objective: "Decide how the income model changes so the target is physically possible.",
+          sequence: [
+            "Run services maths at current price and capacity",
+            "Name the binding constraint",
+            "Choose: raise price, cut hours, productise, add capacity, or drop the target",
+          ],
+          guardrails: ["Do not scale outreach until the model clears capacity"],
+          cadence: "Weekly 20-minute model review",
+          review: "After the one-pager: continue only if the model clears capacity",
+          exit: "A feasible model, or a conscious not-now on the target",
+        },
+        learning: {
+          expected: "The binding constraint is named before any volume plan is executed.",
+          questions: learningQuestions("DECIDE"),
         },
         usedFixture: true,
       },
