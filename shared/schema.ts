@@ -154,6 +154,8 @@ export interface ProofPanel {
   tasks: ProofTask[];
 }
 
+export type { DailyResurface, ResurfaceItem } from "./resurface";
+
 export interface TitledNote {
   id: string;
   oldTitle: string;

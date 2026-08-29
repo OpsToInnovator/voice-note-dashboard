@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/lib/theme";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import type { DailyStandup, ProcessingResult, ProofPanel } from "@shared/schema";
+import type { DailyStandup, ProcessingResult, ProofPanel, DailyResurface, ResurfaceItem } from "@shared/schema";
 import {
   Sun,
   Moon,
@@ -25,6 +25,8 @@ import {
   Trophy,
   TrendingUp,
   Compass,
+  Inbox,
+  RotateCcw,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -199,6 +201,239 @@ function PriorityBadge({ priority }: { priority: string }) {
     >
       {priority}
     </span>
+  );
+}
+
+function SourceBadge({ source }: { source: ResurfaceItem["source"] }) {
+  return (
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded text-muted-foreground bg-muted">
+      {source === "note" ? "Note" : "Task"}
+    </span>
+  );
+}
+
+function ResurfaceItemRow({
+  item,
+  testId,
+  danger,
+}: {
+  item: ResurfaceItem;
+  testId: string;
+  danger?: boolean;
+}) {
+  return (
+    <li
+      className="px-5 py-3 border-b border-card-border last:border-b-0 flex items-center gap-3 hover:bg-muted/30 transition-colors"
+      data-testid={testId}
+    >
+      <div
+        className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 ${
+          danger ? "border-destructive/50" : "border-primary/40"
+        }`}
+      />
+      <div className="flex-1 min-w-0">
+        <span className="text-[13px] font-medium block truncate">{item.name}</span>
+        <span className="text-[11px] text-muted-foreground">{item.reason}</span>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <SourceBadge source={item.source} />
+        {item.priority ? <PriorityBadge priority={item.priority} /> : null}
+        {item.url ? (
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-muted-foreground hover:text-foreground"
+            aria-label={`Open ${item.name} in Notion`}
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
+function InboxMeter({ count, cap, overflow }: { count: number; cap: number; overflow: boolean }) {
+  const ratio = Math.min(100, Math.round((count / cap) * 100));
+  return (
+    <div className="px-5 py-3 border-b border-card-border" data-testid="inbox-meter">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Inbox
+        </span>
+        <span
+          className={`text-[12px] font-semibold tabular-nums ${
+            overflow ? "text-destructive" : "text-foreground"
+          }`}
+        >
+          {count}/{cap}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className={`h-full rounded-full ${overflow ? "bg-destructive" : "bg-primary"}`}
+          style={{ width: `${ratio}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ResurfaceSection() {
+  const { data, isLoading, error } = useQuery<DailyResurface>({
+    queryKey: ["/api/resurface"],
+    staleTime: 900000,
+  });
+  const [heldBackOpen, setHeldBackOpen] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="bg-card border border-card-border rounded-xl p-5 mb-6 animate-fade-in delay-2">
+        <Skeleton className="h-5 w-48 mb-3" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div
+        className="bg-card border border-card-border rounded-xl px-5 py-4 mb-6 animate-fade-in delay-2"
+        data-testid="resurface-error"
+      >
+        <p className="text-[13px] text-muted-foreground">
+          Couldn’t load today’s resurface. Standup below is still the full picture.
+        </p>
+      </div>
+    );
+  }
+
+  const overflow = data.lead === "inbox_overflow";
+
+  return (
+    <div
+      className={`bg-card border rounded-xl overflow-hidden mb-6 animate-fade-in delay-2 ${
+        overflow ? "border-destructive/40" : "border-card-border"
+      }`}
+      data-testid="resurface-section"
+      data-lead={data.lead}
+    >
+      <div className="px-5 py-3.5 border-b border-card-border">
+        <div className="flex items-center gap-2 mb-1">
+          {overflow ? (
+            <AlertTriangle className="w-4 h-4 text-destructive" />
+          ) : (
+            <RotateCcw className="w-4 h-4 text-primary" />
+          )}
+          <span
+            className={`font-display text-sm font-semibold ${overflow ? "text-destructive" : ""}`}
+            data-testid="resurface-headline"
+          >
+            {data.headline}
+          </span>
+        </div>
+        <p className="text-[13px] text-muted-foreground leading-relaxed" data-testid="resurface-summary">
+          {data.summary}
+        </p>
+      </div>
+
+      <InboxMeter count={data.inbox.count} cap={data.inbox.cap} overflow={overflow} />
+
+      {overflow ? (
+        <>
+          <div className="px-5 py-2.5 bg-destructive/5 border-b border-card-border flex items-center gap-2">
+            <Inbox className="w-3.5 h-3.5 text-destructive" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-destructive">
+              Process Inbox first
+            </span>
+          </div>
+          {data.inbox.items.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-muted-foreground">Inbox is empty.</p>
+          ) : (
+            <ul data-testid="resurface-inbox-list">
+              {data.inbox.items.map((item, i) => (
+                <ResurfaceItemRow
+                  key={item.id}
+                  item={item}
+                  testId={`resurface-inbox-${i}`}
+                  danger
+                />
+              ))}
+            </ul>
+          )}
+          {(data.openToday.length > 0 || data.stale.length > 0) && (
+            <div className="border-t border-card-border">
+              <button
+                onClick={() => setHeldBackOpen(!heldBackOpen)}
+                className="w-full px-5 py-2.5 flex items-center justify-between text-[12px] text-muted-foreground hover:bg-muted/30 transition-colors"
+                data-testid="toggle-held-back"
+              >
+                <span>Held back until Inbox is under {data.inbox.cap}</span>
+                {heldBackOpen ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </button>
+              {heldBackOpen && (
+                <div data-testid="resurface-held-back">
+                  {data.openToday.map((item, i) => (
+                    <ResurfaceItemRow key={item.id} item={item} testId={`resurface-held-today-${i}`} />
+                  ))}
+                  {data.stale.map((item, i) => (
+                    <ResurfaceItemRow
+                      key={item.id}
+                      item={item}
+                      testId={`resurface-held-stale-${i}`}
+                      danger
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="px-5 py-2.5 border-b border-card-border flex items-center gap-2">
+            <ClipboardList className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+              Open today
+            </span>
+          </div>
+          {data.openToday.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-muted-foreground text-center">Nothing genuinely open today</p>
+          ) : (
+            <ul data-testid="resurface-today-list">
+              {data.openToday.map((item, i) => (
+                <ResurfaceItemRow key={item.id} item={item} testId={`resurface-today-${i}`} />
+              ))}
+            </ul>
+          )}
+          {data.stale.length > 0 && (
+            <>
+              <div className="px-5 py-2.5 border-y border-card-border flex items-center gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-destructive">
+                  Stale
+                </span>
+              </div>
+              <ul data-testid="resurface-stale-list">
+                {data.stale.map((item, i) => (
+                  <ResurfaceItemRow
+                    key={item.id}
+                    item={item}
+                    testId={`resurface-stale-${i}`}
+                    danger
+                  />
+                ))}
+              </ul>
+            </>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -832,6 +1067,9 @@ export default function Standup() {
             {data.date}
           </p>
         </div>
+
+        {/* Reliable return — Inbox overflow leads, otherwise the short open/stale list */}
+        <ResurfaceSection />
 
         {/* Quick Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

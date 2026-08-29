@@ -2,6 +2,26 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup, gatherIntelligenceContext, classifyUnclassifiedTasks } from "./notion";
 import { generateIntelligence, autoTitleNotes, processVoiceNotes, getUnprocessedVoiceNoteCount, generateProofPanel } from "./intelligence";
+import { getDailyResurface, runResurfaceJob } from "./resurface";
+import type { DailyStandup } from "../shared/schema";
+
+function fixtureStandup(): DailyStandup {
+  return {
+    date: "29 Aug 2026",
+    greeting: "Good morning",
+    completedYesterday: [],
+    dueToday: [{ name: "Send weekly update", type: "Process", project: "", priority: "High" }],
+    overdue: [{ name: "Renew domain", type: "Process", project: "", due: "2026-08-17", daysOverdue: 12 }],
+    projectHealth: { healthy: 2, attention: 1, stalled: 0, paused: 0, waiting: 0 },
+    recentVoiceNotes: [],
+    stats: {
+      completedYesterdayCount: 0,
+      dueTodayCount: 1,
+      overdueCount: 1,
+      activeProjects: 3,
+    },
+  };
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -22,6 +42,10 @@ export async function registerRoutes(
   // Unprocessed voice note count (MUST be before :id route)
   app.get("/api/voice-notes/unprocessed-count", async (_req, res) => {
     try {
+      if (process.env.RESURFACE_FIXTURE) {
+        res.json({ count: 0 });
+        return;
+      }
       const count = await getUnprocessedVoiceNoteCount();
       res.json({ count });
     } catch (err: any) {
@@ -60,11 +84,37 @@ export async function registerRoutes(
   // Daily standup briefing
   app.get("/api/standup", async (_req, res) => {
     try {
+      if (process.env.RESURFACE_FIXTURE) {
+        res.json(fixtureStandup());
+        return;
+      }
       const standup = await getDailyStandup();
       res.json(standup);
     } catch (err: any) {
       console.error("Error fetching standup:", err);
       res.status(500).json({ error: "Failed to fetch standup data", message: err.message });
+    }
+  });
+
+  // Daily resurface: open today + stale, or Inbox overflow if the graveyard cap is crossed
+  app.get("/api/resurface", async (_req, res) => {
+    try {
+      const report = await getDailyResurface();
+      res.json(report);
+    } catch (err: any) {
+      console.error("Error building daily resurface:", err);
+      res.status(500).json({ error: "Failed to build daily resurface", message: err.message });
+    }
+  });
+
+  // Cron/manual trigger — always reads buckets fresh and logs the short list
+  app.post("/api/resurface/run", async (_req, res) => {
+    try {
+      const report = await runResurfaceJob();
+      res.json(report);
+    } catch (err: any) {
+      console.error("Error running resurface job:", err);
+      res.status(500).json({ error: "Failed to run resurface job", message: err.message });
     }
   });
 
@@ -127,6 +177,17 @@ export async function registerRoutes(
   // Proof Panel — evidence of progress
   app.get("/api/proof", async (_req, res) => {
     try {
+      if (process.env.RESURFACE_FIXTURE) {
+        res.json({
+          period: "",
+          totalWins: 0,
+          winsByProject: [],
+          winsByIdentity: [],
+          patternSignal: "",
+          tasks: [],
+        });
+        return;
+      }
       const proof = await generateProofPanel();
       res.json(proof);
     } catch (err: any) {

@@ -965,6 +965,7 @@ export default function Dashboard() {
   // Prefetch other tabs so switching is instant
   useQuery({ queryKey: ["/api/projects"], staleTime: 1800000, enabled: !isLoading });
   useQuery({ queryKey: ["/api/standup"], staleTime: 1800000, enabled: !isLoading });
+  useQuery({ queryKey: ["/api/resurface"], staleTime: 900000, enabled: !isLoading });
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
