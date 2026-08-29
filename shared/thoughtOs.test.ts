@@ -87,7 +87,7 @@ describe("thought operating system", () => {
   });
 });
 
-describe("gates without AI", () => {
+describe("gates from the text alone", () => {
   it("classifies family, agency, substance, and tier from the text alone", () => {
     assert.equal(classifyFamily("customers don't understand the offer"), "strategic");
     assert.equal(checkAgency("Nothing I can do about the weather around this deal").disposition, "accept");

@@ -1,5 +1,5 @@
 // Thought → Decision → Next action → Evidence → Learning
-// Code enforces the rules. AI fills the card. Capture without a next action is motion.
+// Code enforces the rules. Canvas text may be filled by a model. Capture without a next action is motion.
 
 export type ActionDecision = "act" | "not_now";
 
@@ -150,7 +150,7 @@ export function actionCardToBlocks(card: ActionCard): { heading: string; body: s
 }
 
 export function buildActionFramePrompt(content: string, projectNames: string[], todayStr: string): string {
-  return `You turn thoughts into next actions. Motion feels productive; action produces a result that reduces uncertainty.
+  return `Turn the source into next-action cards. Motion feels productive; an action produces a result that reduces uncertainty.
 
 SEQUENCE: Thought → Decision → Next action → Evidence → Learning
 
