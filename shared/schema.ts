@@ -156,6 +156,12 @@ export interface ProofPanel {
 
 export type { DailyResurface, ResurfaceItem } from "./resurface";
 export type { ActionCard, ClarifyResult } from "./actionFrame";
+export type {
+  ApplyFrameworkResult,
+  FrameworkId,
+  FrameworkMeta,
+  FrameworkPlan,
+} from "./frameworks";
 
 export interface TitledNote {
   id: string;

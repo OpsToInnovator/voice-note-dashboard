@@ -4,6 +4,8 @@ import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects,
 import { generateIntelligence, autoTitleNotes, processVoiceNotes, getUnprocessedVoiceNoteCount, generateProofPanel } from "./intelligence";
 import { getDailyResurface, runResurfaceJob } from "./resurface";
 import { clarifyInbox } from "./actionFrame";
+import { applyFramework } from "./frameworks";
+import { DEFAULT_BIG_GOAL_FRAMEWORK, FRAMEWORKS, GOAL_STACK, type FrameworkId } from "../shared/frameworks";
 import type { DailyStandup } from "../shared/schema";
 
 function fixtureStandup(): DailyStandup {
@@ -127,6 +129,28 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Error clarifying inbox:", err);
       res.status(500).json({ error: "Failed to clarify inbox", message: err.message });
+    }
+  });
+
+  // Goal frameworks: catalog is code; apply fills a canvas that still ends in a next action
+  app.get("/api/frameworks", (_req, res) => {
+    res.json({
+      stack: GOAL_STACK,
+      frameworks: FRAMEWORKS,
+      defaultId: DEFAULT_BIG_GOAL_FRAMEWORK,
+    });
+  });
+
+  app.post("/api/frameworks/apply", async (req, res) => {
+    try {
+      const content = typeof req.body?.content === "string" ? req.body.content : "";
+      const frameworkId = (req.body?.frameworkId || "auto") as FrameworkId | "auto";
+      const result = await applyFramework(content, frameworkId);
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error applying framework:", err);
+      const status = /paste a goal/i.test(err.message || "") ? 400 : 500;
+      res.status(status).json({ error: "Failed to apply framework", message: err.message });
     }
   });
 

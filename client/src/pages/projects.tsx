@@ -515,7 +515,7 @@ function ProjectsSidebar({
       </div>
 
       {/* Nav tabs */}
-      <div className="px-3 py-2 border-b border-sidebar-border flex gap-1">
+      <div className="px-3 py-2 border-b border-sidebar-border flex gap-1 flex-wrap">
         <Link
           href="/standup"
           className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
@@ -559,6 +559,17 @@ function ProjectsSidebar({
           data-testid="nav-intelligence"
         >
           Intelligence
+        </Link>
+        <Link
+          href="/goals"
+          className={`text-[12px] px-3 py-1.5 rounded-md transition-colors ${
+            location === "/goals"
+              ? "bg-primary/10 text-primary font-medium"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          }`}
+          data-testid="nav-goals"
+        >
+          Goals
         </Link>
       </div>
 
