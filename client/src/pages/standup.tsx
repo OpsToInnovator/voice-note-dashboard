@@ -290,6 +290,43 @@ function InboxMeter({ count, cap, overflow }: { count: number; cap: number; over
   );
 }
 
+function ActionPromptCard({ card }: { card: ClarifyResult["cards"][number] }) {
+  const notNow = card.decision === "not_now";
+  const rows: [string, string][] = [
+    ["Thought", card.thought],
+    ["Why it matters now", card.whyItMatters],
+    ["Smallest useful next step", card.nextStep],
+    ["Time or trigger", card.timeOrTrigger],
+    ["Definition of done", card.definitionOfDone],
+    ["What I’ll learn if it fails", card.learnIfFails],
+  ].filter((row): row is [string, string] => Boolean(row[1]));
+
+  return (
+    <div className="border border-card-border rounded-lg px-3 py-2.5" data-testid="action-prompt-card">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <p className="text-[12px] font-medium leading-snug">
+          {notNow ? card.thought || card.nextStep : card.nextStep || card.thought}
+        </p>
+        <span
+          className={`text-[10px] font-medium px-2 py-0.5 rounded flex-shrink-0 ${
+            notNow ? "text-muted-foreground bg-muted" : "text-primary bg-primary/10"
+          }`}
+        >
+          {notNow ? "Not now" : "Next action"}
+        </span>
+      </div>
+      <dl className="space-y-1.5">
+        {rows.map(([label, body]) => (
+          <div key={label}>
+            <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</dt>
+            <dd className="text-[11px] text-muted-foreground leading-relaxed">{body}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 function ClarifyInboxBar({ overflow }: { overflow: boolean }) {
   const [result, setResult] = useState<ClarifyResult | null>(null);
 
@@ -334,16 +371,9 @@ function ClarifyInboxBar({ overflow }: { overflow: boolean }) {
             {result.tasksCreated !== 1 ? "s" : ""}
             {result.deferred > 0 ? ` · ${result.deferred} not now` : ""}
           </p>
-          {result.cards
-            .filter((card) => card.decision === "act")
-            .map((card, i) => (
-              <div key={`${card.sourceId}-${i}`} className="border border-card-border rounded-lg px-3 py-2">
-                <p className="text-[12px] font-medium">{card.nextStep}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {card.definitionOfDone || card.timeOrTrigger}
-                </p>
-              </div>
-            ))}
+          {result.cards.map((card, i) => (
+            <ActionPromptCard key={`${card.sourceId}-${i}`} card={card} />
+          ))}
         </div>
       )}
     </div>
