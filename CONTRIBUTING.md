@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping expand **Noticing Lens**, the open thought operating system from [ApexForm Life](https://apexformlife.com). You are contributing to the public engine. Hosted products (AFOS™, Paradigm) and services stay ApexForm Life’s.
+Thank you for helping expand **Noticing Lens**, the open thought operating system from [ApexForm Life](https://apexformlife.com). You are contributing to the public **app** (UI, gates, fixtures). Hosted products (AFOS™, Paradigm) and services stay ApexForm Life’s.
 
 The product decides what happens to a thought once it appears. It is not a notes app, task manager, journal, or chatbot.
 

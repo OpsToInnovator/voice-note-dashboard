@@ -110,7 +110,7 @@ export function BrandLockup({
 export function HouseCredit({ className }: { className?: string }) {
   return (
     <p className={cn("text-[11px] text-muted-foreground leading-snug", className)} data-testid="house-credit">
-      Open engine of{" "}
+      Noticing Lens by{" "}
       <a
         href={APEXFORM_LIFE_URL}
         target="_blank"
