@@ -28,13 +28,14 @@ Apex Hub. Paste IDs from Notion into Railway **Variables** on this service only.
 | `NOTION_API_KEY` | Required | Integration token (`ntn_…`) |
 | `NOTION_TASKS_DB_ID` | Required | Tasks / Inbox database — 32 hex from the URL |
 | `NOTION_PROJECTS_DB_ID` | Required | Projects database — 32 hex |
-| `NOTION_GOALS_DB_ID` | Optional | Goals database — Intelligence skips goals if unset |
+| `NOTION_GOALS_DB_ID` | Optional | Goals database — Intelligence and inbox audit skip goals if unset |
 | `NOTION_NOTES_DB_ID` | Optional | Notes / Voice Notes database |
 | View / data-source IDs | Optional | Inbox or other views — see [`.env.example`](../.env.example) |
 | `OPENAI_API_KEY` | Optional | Think / Goals / Intelligence canvas fill |
 | `RESURFACE_FIXTURE` | **Unset** | If this is set, you are no longer on Apex Hub |
 | `PORT` | Leave Railway’s | Do not override |
 | `PUBLIC_APP_URL` | Optional | This service’s public origin (OG tags) |
+| `INBOX_AUDIT_JSON` | Optional | Print JSON after `npm run inbox-audit` |
 
 If this service already has Notion keys, **leave them**. Do not add `RESURFACE_FIXTURE` here.
 
@@ -149,7 +150,7 @@ Node **22.x**. `npm test` runs the gate suite. `npm run check` is `tsc` (one kno
 
 Copy [`.env.example`](../.env.example) to `.env`. Never commit `.env`.
 
-[`.env.example`](../.env.example) is labelled **operator vs demo**. Use one set per process. Do not run both on the same host.
+[`.env.example`](../.env.example) is labelled **operator vs demo**. Use one set per process. Do not run both on the same host. Weekly inbox audit uses the **operator** IDs only.
 
 | Variable | Operator | Demo |
 | --- | --- | --- |
@@ -188,5 +189,7 @@ NODE_ENV=production node dist/index.cjs
 ```
 
 Daily resurface (example 07:00 Australia/Perth): `npm run resurface` in development, `npm run resurface:prod` after build. Use on the **operator** if you run the job. Not used on the fixture demo.
+
+Weekly inbox audit (example Sunday 07:00 Australia/Perth = Saturday 23:00 UTC, `0 23 * * 6`): `npm run inbox-audit` in development, `npm run inbox-audit:prod` after build. The job only prints the list. Assign / remove / recalibrate write to Notion only after an explicit confirm on Standup or `POST /api/inbox-audit/apply`. Remove archives the page; it does not hard-delete. Put your own Tasks / Projects / Goals database IDs in `.env` — none are stored in this repo.
 
 Community hosts: keep the ApexForm Life credit and a link to [apexformlife.com](https://apexformlife.com). Do not present a self-host as AFOS™ or Paradigm. [TRADEMARKS.md](../TRADEMARKS.md).

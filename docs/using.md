@@ -74,6 +74,10 @@ In fixture `overflow`, inbox is deliberately too large so you can see the gravey
 
 **Clarify inbox** turns unfiled thoughts into next-action cards (act or not-now). It does not dump a canvas into Notion.
 
+**Weekly inbox audit** is a different pass. New work lands in Inbox. Then it must be assigned to an existing Project, Goal, or Reason. A date is not a home. If it cannot sit on an existing container: **remove** it (archive — not hard-delete) or **recalibrate** with a new project or goal. Matching is token overlap in code, not a prompt. Confirm each row; nothing writes until you do.
+
+In fixture mode the audit shows a sample Apex Hub Inbox (including dated rows that are still uncontained). Live mode reads your Tasks database via `NOTION_TASKS_DB_ID` and matches against Projects / Goals from env.
+
 ---
 
 ## Voice notes — `/#/`

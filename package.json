@@ -34,7 +34,9 @@
     "start": "node dist/index.cjs",
     "resurface": "tsx server/resurfaceJob.ts",
     "resurface:prod": "node dist/resurface.cjs",
-    "test": "tsx --test shared/resurface.test.ts shared/actionFrame.test.ts shared/frameworks.test.ts shared/thoughtOs.test.ts shared/goalCoach.test.ts",
+    "inbox-audit": "tsx server/inboxAuditJob.ts",
+    "inbox-audit:prod": "node dist/inbox-audit.cjs",
+    "test": "tsx --test shared/resurface.test.ts shared/inboxAudit.test.ts shared/actionFrame.test.ts shared/frameworks.test.ts shared/thoughtOs.test.ts shared/goalCoach.test.ts",
     "check": "tsc"
   },
   "dependencies": {

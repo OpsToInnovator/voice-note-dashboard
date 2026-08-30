@@ -28,6 +28,7 @@ import {
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppNav } from "@/components/app-nav";
+import { InboxAuditSection } from "@/components/inbox-audit-section";
 
 // --- Helpers ---
 function formatDate(dateStr: string | null): string {
@@ -1119,6 +1120,9 @@ export default function Standup() {
 
         {/* Reliable return — Inbox overflow leads, otherwise the short open/stale list */}
         <ResurfaceSection />
+
+        {/* Weekly containment pass — assign / remove / recalibrate. Writes only on confirm. */}
+        <InboxAuditSection />
 
         {/* Quick Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

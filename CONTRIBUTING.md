@@ -41,6 +41,7 @@ npm test
 | `shared/frameworks.ts` | Seven canvases; every plan has a linted leaf |
 | `shared/actionFrame.ts` | Thought → next action |
 | `shared/resurface.ts` | Daily inbox / today / stale, cap 15 |
+| `shared/inboxAudit.ts` | Weekly inbox audit: assign / remove / recalibrate |
 | `client/src` | React UI (hash routes) |
 | `server` | Express, Notion, and optional interpretation adapters |
 
