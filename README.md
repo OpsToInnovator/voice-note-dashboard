@@ -78,6 +78,21 @@ npm test
 | **[Setup](docs/setup.md)** | Two Railway hosts, Notion Apex Hub IDs, fixture demo, inbox-audit job |
 | **[Contributing](CONTRIBUTING.md)** | Ground rules for PRs |
 | **[Security](SECURITY.md)** | How to report a vulnerability |
+| **[Commercial placement](docs/site-placement/README.md)** | Homepage strip for apexformlife.com + GitHub About paste |
+
+---
+
+## GitHub About (maintainers)
+
+Repository **Settings → General** cannot be written from this token (API 403). Paste:
+
+| Field | Value |
+| --- | --- |
+| **Description** | `Noticing Lens — open thought operating system from ApexForm Life. Every thought gets a destination.` |
+| **Website** | Public Think URL when the demo host is live, else `https://apexformlife.com` |
+| **Topics** | `noticing-lens`, `apexform-life`, `thought-operating-system`, `afos`, `paradigm`, `apache-2.0` |
+
+`package.json` already carries the matching `description` / `homepage` / `keywords`.
 
 ---
 
