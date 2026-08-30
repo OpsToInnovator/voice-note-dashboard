@@ -9,6 +9,15 @@ import { applyFramework } from "./frameworks";
 import { processThought, thoughtCatalog } from "./thoughtOs";
 import { DEFAULT_BIG_GOAL_FRAMEWORK, FRAMEWORKS, GOAL_STACK, type FrameworkId } from "../shared/frameworks";
 import type { DailyStandup } from "../shared/schema";
+import {
+  fixtureClassifyResult,
+  fixtureIntelligenceReport,
+  fixtureProcessingResult,
+  fixtureProjects,
+  fixtureTitleResult,
+  fixtureVoiceNotes,
+  isResurfaceFixture,
+} from "./intelligenceFixture";
 
 function fixtureStandup(): DailyStandup {
   return {
@@ -36,6 +45,10 @@ export async function registerRoutes(
   // List all voice notes
   app.get("/api/voice-notes", async (_req, res) => {
     try {
+      if (isResurfaceFixture()) {
+        res.json(fixtureVoiceNotes());
+        return;
+      }
       const notes = await listVoiceNotes();
       res.json(notes);
     } catch (err: any) {
@@ -47,7 +60,7 @@ export async function registerRoutes(
   // Unprocessed voice note count (MUST be before :id route)
   app.get("/api/voice-notes/unprocessed-count", async (_req, res) => {
     try {
-      if (process.env.RESURFACE_FIXTURE) {
+      if (isResurfaceFixture()) {
         res.json({ count: 0 });
         return;
       }
@@ -62,6 +75,13 @@ export async function registerRoutes(
   // Get a specific voice note with parsed content and tasks
   app.get("/api/voice-notes/:id", async (req, res) => {
     try {
+      if (isResurfaceFixture()) {
+        res.status(404).json({
+          error: "Voice note not found",
+          message: "This public plant has no Notion notes. Think is the proof.",
+        });
+        return;
+      }
       const detail = await getVoiceNoteDetail(req.params.id);
       res.json(detail);
     } catch (err: any) {
@@ -89,7 +109,7 @@ export async function registerRoutes(
   // Daily standup briefing
   app.get("/api/standup", async (_req, res) => {
     try {
-      if (process.env.RESURFACE_FIXTURE) {
+      if (isResurfaceFixture()) {
         res.json(fixtureStandup());
         return;
       }
@@ -210,6 +230,10 @@ export async function registerRoutes(
   // List all active projects with health scoring
   app.get("/api/projects", async (_req, res) => {
     try {
+      if (isResurfaceFixture()) {
+        res.json(fixtureProjects());
+        return;
+      }
       const projects = await listProjects();
       res.json(projects);
     } catch (err: any) {
@@ -221,6 +245,10 @@ export async function registerRoutes(
   // Intelligence Engine
   app.get("/api/intelligence", async (_req, res) => {
     try {
+      if (isResurfaceFixture()) {
+        res.json(fixtureIntelligenceReport());
+        return;
+      }
       const context = await gatherIntelligenceContext();
       const report = await generateIntelligence(context);
       res.json(report);
@@ -233,6 +261,10 @@ export async function registerRoutes(
   // Task Auto-Classification
   app.post("/api/tasks/classify", async (_req, res) => {
     try {
+      if (isResurfaceFixture()) {
+        res.json(fixtureClassifyResult());
+        return;
+      }
       const classified = await classifyUnclassifiedTasks();
       res.json({ classified, count: classified.length });
     } catch (err: any) {
@@ -244,6 +276,10 @@ export async function registerRoutes(
   // Auto-Title Untitled Notes
   app.post("/api/notes/auto-title", async (_req, res) => {
     try {
+      if (isResurfaceFixture()) {
+        res.json(fixtureTitleResult());
+        return;
+      }
       const titled = await autoTitleNotes();
       res.json({ titled, count: titled.length });
     } catch (err: any) {
@@ -255,6 +291,10 @@ export async function registerRoutes(
   // Voice Note Task Extractor
   app.post("/api/process-voice-notes", async (_req, res) => {
     try {
+      if (isResurfaceFixture()) {
+        res.json(fixtureProcessingResult());
+        return;
+      }
       const result = await processVoiceNotes();
       res.json(result);
     } catch (err: any) {
@@ -266,7 +306,7 @@ export async function registerRoutes(
   // Proof Panel — evidence of progress
   app.get("/api/proof", async (_req, res) => {
     try {
-      if (process.env.RESURFACE_FIXTURE) {
+      if (isResurfaceFixture()) {
         res.json({
           period: "",
           totalWins: 0,

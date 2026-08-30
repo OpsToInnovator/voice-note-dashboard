@@ -96,6 +96,8 @@ Project health from your Projects database: stalled, overdue, completion. Same r
 
 Weekly pattern pass across goals, projects, and recent work. Optional. Canvas text may be filled from a model when a key is set; the weekly habit and the schema are the product. Task classification (Process / Immersive) and note titles are tools on this surface too.
 
+On the public plant (`RESURFACE_FIXTURE=overflow`) this surface **fails closed**: honest fixture copy, no invented weekly report. Think remains the proof. Operator Intelligence stays on the private host with Notion and a model key.
+
 ---
 
 ## What “good” looks like

@@ -115,6 +115,7 @@ IDs are **32 hex characters** in the Notion URL. They are not in this repo. Past
 3. Tap **Decide what happens next**.
 4. Destination is **DECIDE** (capacity stop — change the model, not more volume).
 5. Standup / Voice Notes must **not** show your real Apex Hub inbox. Fixture overflow only.
+6. Intelligence / Projects / Voice Notes **fail closed**: honest fixture copy or empty lists. No Notion, no OpenAI. Think remains the proof. Do not treat `/#/intelligence` as operator Intelligence, AFOS, Paradigm, or LCM.
 
 **Operator** (existing Lens URL):
 

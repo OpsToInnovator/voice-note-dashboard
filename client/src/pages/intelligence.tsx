@@ -70,6 +70,29 @@ function IntelligenceSkeleton() {
 
 // --- Card Components ---
 
+function FixturePlantBanner() {
+  return (
+    <div
+      className="bg-brand-amber/10 border border-brand-amber/30 rounded-xl px-5 py-4 mb-6 animate-fade-in delay-2"
+      data-testid="fixture-plant-banner"
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-lg bg-brand-amber/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <AlertTriangle className="w-4 h-4 text-brand-amber" />
+        </div>
+        <div>
+          <p className="text-[13px] font-semibold text-foreground mb-1">
+            Public plant — not operator Intelligence
+          </p>
+          <p className="text-[13px] text-muted-foreground leading-relaxed">
+            This host has no Notion workspace and no OpenAI. Think is the proof. This page is not AFOS, not Paradigm, and not longitudinal cognitive modelling.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SummaryBanner({ summary }: { summary: string }) {
   return (
     <div
@@ -333,6 +356,7 @@ function SystemAuditSection({ audit }: { audit: { summary: string; items: System
 // --- Task Classifier Section ---
 function TaskClassifierSection() {
   const [results, setResults] = useState<ClassifiedTask[]>([]);
+  const [usedFixture, setUsedFixture] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -341,6 +365,7 @@ function TaskClassifierSection() {
     },
     onSuccess: (data) => {
       setResults(data.classified || []);
+      setUsedFixture(Boolean(data.usedFixture));
     },
   });
 
@@ -409,7 +434,15 @@ function TaskClassifierSection() {
         </div>
       )}
 
-      {!mutation.isPending && results.length === 0 && !mutation.isIdle && (
+      {!mutation.isPending && usedFixture && (
+        <div className="px-5 py-6 text-center">
+          <p className="text-[13px] text-muted-foreground" data-testid="classify-fixture-message">
+            Task classification is an operator tool. Not available on this public plant — no Notion, no OpenAI.
+          </p>
+        </div>
+      )}
+
+      {!mutation.isPending && !usedFixture && results.length === 0 && !mutation.isIdle && (
         <div className="px-5 py-6 text-center">
           <p className="text-[13px] text-muted-foreground">
             All tasks already have P/I classifications.
@@ -417,7 +450,7 @@ function TaskClassifierSection() {
         </div>
       )}
 
-      {mutation.isError && (
+      {mutation.isError && !usedFixture && (
         <div className="px-5 py-4">
           <p className="text-[12px] text-destructive">
             Failed to classify tasks. Please try again.
@@ -431,6 +464,7 @@ function TaskClassifierSection() {
 // --- Note Auto-Titler Section ---
 function NoteTitlerSection() {
   const [results, setResults] = useState<TitledNote[]>([]);
+  const [usedFixture, setUsedFixture] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -439,6 +473,7 @@ function NoteTitlerSection() {
     },
     onSuccess: (data) => {
       setResults(data.titled || []);
+      setUsedFixture(Boolean(data.usedFixture));
     },
   });
 
@@ -508,7 +543,15 @@ function NoteTitlerSection() {
         </div>
       )}
 
-      {!mutation.isPending && results.length === 0 && !mutation.isIdle && (
+      {!mutation.isPending && usedFixture && (
+        <div className="px-5 py-6 text-center">
+          <p className="text-[13px] text-muted-foreground" data-testid="title-fixture-message">
+            Note titles are an operator tool. Not available on this public plant — no Notion, no OpenAI.
+          </p>
+        </div>
+      )}
+
+      {!mutation.isPending && !usedFixture && results.length === 0 && !mutation.isIdle && (
         <div className="px-5 py-6 text-center">
           <p className="text-[13px] text-muted-foreground">
             All notes already have titles.
@@ -516,7 +559,7 @@ function NoteTitlerSection() {
         </div>
       )}
 
-      {mutation.isError && (
+      {mutation.isError && !usedFixture && (
         <div className="px-5 py-4">
           <p className="text-[12px] text-destructive">
             Failed to generate titles. Please try again.
@@ -633,6 +676,8 @@ export default function Intelligence() {
             </button>
           </div>
         </div>
+
+        {data.usedFixture && <FixturePlantBanner />}
 
         {/* Summary Banner */}
         <SummaryBanner summary={data.summary} />
