@@ -54,9 +54,9 @@ Public Think door. Forty seconds. No clone. No Notion.
 | `NOTION_*` (every ID) | Unset | — |
 | `OPENAI_API_KEY` | Unset | — |
 | `PORT` | Leave Railway’s | Do not override |
-| `PUBLIC_APP_URL` | Optional | This demo’s origin (OG tags). Lockup still goes to [apexformlife.com](https://apexformlife.com) |
+| `PUBLIC_APP_URL` | Set | `https://lens.apexformlife.com` (OG tags). Lockup still goes to [apexformlife.com](https://apexformlife.com) |
 
-Optional DNS later: CNAME `lens.apexformlife.com` → this demo service (Railway will also give a `TXT` record — both are required).
+Custom domain: CNAME `lens.apexformlife.com` → this demo service (Railway will also give a `TXT` record — both are required). Share `https://lens.apexformlife.com/#/think`.
 
 ---
 
@@ -86,9 +86,9 @@ This environment cannot set Railway variables for you. Do it in [railway.app](ht
 7. Open **Settings → Networking → Public Networking** → **Generate Domain**.
 8. Wait for the deploy to go green. Copy the `*.up.railway.app` URL.
 
-This demo is **not** live until you generate that domain and the deploy succeeds. Share `https://<that-host>/#/think`.
+The public door is [https://lens.apexformlife.com/#/think](https://lens.apexformlife.com/#/think). Attach that custom domain to **this** service (plus Railway’s `TXT`). Generate Domain is only a fallback host.
 
-Empty hash on current `main` also lands on Think (PR #3). `/#/think` is the URL to send so older deploys still open the door.
+Empty hash also lands on Think. Send `/#/think` so older deploys still open the door.
 
 ### 3. Find Apex Hub database IDs (operator only)
 
@@ -108,7 +108,7 @@ IDs are **32 hex characters** in the Notion URL. They are not in this repo. Past
 
 ### 4. Verify
 
-**Demo** (`noticing-lens-demo` public URL):
+**Demo** ([lens.apexformlife.com](https://lens.apexformlife.com/#/think)):
 
 1. Open `/#/think`.
 2. Tap **`$1M this year`**.

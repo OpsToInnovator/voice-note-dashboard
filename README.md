@@ -31,16 +31,18 @@ Credit ApexForm Life when you fork, write, or demo. [TRADEMARKS.md](TRADEMARKS.m
 
 ## Try it
 
+**Public door:** [lens.apexformlife.com/#/think](https://lens.apexformlife.com/#/think)
+
+Tap **`$1M this year`**, then **Decide what happens next**. Destination is **DECIDE** (capacity stop — change the model, not more volume). The ApexForm Life lockup is the building: AFOS™, Paradigm, a project.
+
 **Two Railway services. Same project. Same repo. Different variables.**
 
 | Host | Service | Variables | URL to open |
 | --- | --- | --- | --- |
 | **Operator** — Apex Hub (“my version”) | Existing Noticing Lens | Notion keys. **`RESURFACE_FIXTURE` unset** | `/#/standup` |
-| **Demo** — other people, 40 seconds | New `noticing-lens-demo` | **`RESURFACE_FIXTURE=overflow` only.** No Notion, no OpenAI | `/#/think` |
+| **Demo** — other people, 40 seconds | `noticing-lens-demo` | **`RESURFACE_FIXTURE=overflow` only.** No Notion, no OpenAI | [lens.apexformlife.com/#/think](https://lens.apexformlife.com/#/think) |
 
-Demo: tap **`$1M this year`**, then **Decide what happens next**. Destination is **DECIDE** (capacity stop — change the model, not more volume). The ApexForm Life lockup is the building: AFOS™, Paradigm, a project.
-
-Do **not** set Lens variables on [app.apexformlife.com](https://app.apexformlife.com) — that host is AFOS. Optional later: CNAME `lens.apexformlife.com` → the **demo** service. Dashboard steps and variable tables: [docs/setup.md](docs/setup.md).
+Do **not** set Lens variables on [app.apexformlife.com](https://app.apexformlife.com) — that host is AFOS. Custom domain `lens.apexformlife.com` is the **demo** service only. Dashboard steps and variable tables: [docs/setup.md](docs/setup.md).
 
 Contributors, locally:
 
@@ -89,7 +91,7 @@ Repository **Settings → General** cannot be written from this token (API 403).
 | Field | Value |
 | --- | --- |
 | **Description** | `Noticing Lens — open thought operating system from ApexForm Life. Every thought gets a destination.` |
-| **Website** | Public Think URL when the demo host is live, else `https://apexformlife.com` |
+| **Website** | `https://lens.apexformlife.com` |
 | **Topics** | `noticing-lens`, `apexform-life`, `thought-operating-system`, `afos`, `paradigm`, `apache-2.0` |
 
 `package.json` already carries the matching `description` / `homepage` / `keywords`.
