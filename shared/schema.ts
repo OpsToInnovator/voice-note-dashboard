@@ -127,6 +127,8 @@ export interface IntelligenceReport {
   };
   summary: string;
   generatedAt: string;
+  /** Public plant only — honest fixture, no Notion / OpenAI. */
+  usedFixture?: boolean;
 }
 
 export interface ClassifiedTask {
@@ -205,4 +207,6 @@ export interface ProcessingResult {
   notesTitled: number;
   details: ProcessedVoiceNote[];
   titledNotes: TitledNote[];
+  /** Public plant only — no Notion / OpenAI. */
+  usedFixture?: boolean;
 }

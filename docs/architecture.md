@@ -33,6 +33,7 @@ Capture
 | `server/inboxAudit.ts` | Load tasks/containers; GET audit; POST apply writes only on confirm |
 | `server/notion.ts` | Notion API; **no workspace IDs in source** — env only |
 | `server/intelligence.ts` | Weekly report schema fill; proof panel; note titles |
+| `server/intelligenceFixture.ts` | Public-plant fail-closed payloads (honest Intelligence; empty Projects / Voice Notes) |
 | `server/routes.ts` | Express routes |
 | `client/src/pages/think.tsx` | Think |
 | `client/src/pages/frameworks.tsx` | Goals |
@@ -42,7 +43,7 @@ Capture
 | `client/src/pages/intelligence.tsx` | Intelligence |
 | `client/src/components/brand-mark.tsx` | ApexForm Life lockup → apexformlife.com |
 
-Tests live next to the module they prove: `shared/*.test.ts`. Run `npm test`.
+Tests live next to the module they prove: `shared/*.test.ts` and `server/intelligenceFixture.test.ts`. Run `npm test`.
 
 ## What must not leak into a prompt
 
@@ -50,7 +51,7 @@ If a rule is structural (tier, destination, lint, capacity stop), it belongs in 
 
 ## Data
 
-- **Fixture:** `RESURFACE_FIXTURE=overflow` or `healthy`. No Notion, no model key. Deterministic samples. Public Railway demo uses `overflow` only.
+- **Fixture:** `RESURFACE_FIXTURE=overflow` or `healthy`. No Notion, no model key. Deterministic samples. Public Railway demo uses `overflow` only. Think is the proof. Intelligence / Projects / Voice Notes **fail closed** (honest fixture report or empty lists) — they do not invent a weekly report, operator projects, or LCM. Proof and Standup already short-circuit.
 - **Live Notion:** `NOTION_API_KEY` + database IDs on the **operator** host. See [setup.md](setup.md) (two Railway services — do not mix variables).
 - **Interpretation fill:** optional `OPENAI_API_KEY` when fixture is unset. Think/Goals still **normalize** through `shared/` after the JSON returns.
 
