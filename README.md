@@ -31,11 +31,16 @@ Credit ApexForm Life when you fork, write, or demo. [TRADEMARKS.md](TRADEMARKS.m
 
 ## Try it
 
-**Forty seconds. No clone. No Notion.**
+**Two Railway services. Same project. Same repo. Different variables.**
 
-The public fixture opens **Think**. Tap **`$1M this year`**, then **Decide what happens next**. Destination is **DECIDE** (capacity stop — change the model, not more volume). The ApexForm Life lockup is the building: AFOS™, Paradigm, a project.
+| Host | Service | Variables | URL to open |
+| --- | --- | --- | --- |
+| **Operator** — Apex Hub (“my version”) | Existing Noticing Lens | Notion keys. **`RESURFACE_FIXTURE` unset** | `/#/standup` |
+| **Demo** — other people, 40 seconds | New `noticing-lens-demo` | **`RESURFACE_FIXTURE=overflow` only.** No Notion, no OpenAI | `/#/think` |
 
-Host it on the existing **Noticing Lens** Railway service with only `RESURFACE_FIXTURE=overflow` (Notion and OpenAI unset). Do not set that variable on [app.apexformlife.com](https://app.apexformlife.com) — that host is AFOS. If the current service is still a live Notion workspace, add a second service in the same project. Optional CNAME: `lens.apexformlife.com`. Empty hash lands on Think. Details: [docs/setup.md](docs/setup.md).
+Demo: tap **`$1M this year`**, then **Decide what happens next**. Destination is **DECIDE** (capacity stop — change the model, not more volume). The ApexForm Life lockup is the building: AFOS™, Paradigm, a project.
+
+Do **not** set Lens variables on [app.apexformlife.com](https://app.apexformlife.com) — that host is AFOS. Optional later: CNAME `lens.apexformlife.com` → the **demo** service. Dashboard steps and variable tables: [docs/setup.md](docs/setup.md).
 
 Contributors, locally:
 
@@ -70,7 +75,7 @@ npm test
 | **[Using the app](docs/using.md)** | Every surface, as an operator |
 | **[Destinations](docs/destinations.md)** | Five destinations, three tiers, next-action contract |
 | **[Architecture](docs/architecture.md)** | What code owns vs what a model may fill |
-| **[Setup](docs/setup.md)** | Fixture, Notion, production, resurface job |
+| **[Setup](docs/setup.md)** | Two Railway hosts, Notion Apex Hub IDs, fixture demo |
 | **[Contributing](CONTRIBUTING.md)** | Ground rules for PRs |
 | **[Security](SECURITY.md)** | How to report a vulnerability |
 
