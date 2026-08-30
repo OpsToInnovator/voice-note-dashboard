@@ -48,8 +48,8 @@ If a rule is structural (tier, destination, lint, capacity stop), it belongs in 
 
 ## Data
 
-- **Fixture:** `RESURFACE_FIXTURE=overflow` or `healthy`. No Notion, no model key. Deterministic samples.
-- **Live Notion:** `NOTION_API_KEY` + database IDs. See [setup.md](setup.md).
+- **Fixture:** `RESURFACE_FIXTURE=overflow` or `healthy`. No Notion, no model key. Deterministic samples. Public Railway demo uses `overflow` only.
+- **Live Notion:** `NOTION_API_KEY` + database IDs on the **operator** host. See [setup.md](setup.md) (two Railway services — do not mix variables).
 - **Interpretation fill:** optional `OPENAI_API_KEY` when fixture is unset. Think/Goals still **normalize** through `shared/` after the JSON returns.
 
 Nothing is stored on the app server as a database. Notion is the system of record when connected. The filesystem is ephemeral on typical PaaS hosts.

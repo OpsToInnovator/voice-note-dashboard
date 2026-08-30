@@ -8,7 +8,9 @@ Start in fixture mode so you can learn the surfaces without Notion:
 RESURFACE_FIXTURE=overflow PORT=5000 npm run dev
 ```
 
-Open the app. An empty URL lands on Think (`/#/think`). The forty-second proof: tap **`$1M this year`**, then **Decide what happens next**. Destination is **DECIDE** — change the model, not more volume.
+Open the app. An empty URL lands on Think (`/#/think`). The forty-second proof (public **demo** host): tap **`$1M this year`**, then **Decide what happens next**. Destination is **DECIDE** — change the model, not more volume.
+
+The **operator** host (Notion Apex Hub) is a different Railway service. Bookmark `/#/standup` for the live inbox. Variable tables: [setup.md](setup.md).
 
 <p align="center">
   <img src="images/think.png" alt="Think: capture a thought" width="920" />
