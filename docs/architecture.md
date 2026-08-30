@@ -23,12 +23,14 @@ Capture
 | `shared/goalCoach.ts` | Goal type, outcome lint, feasibility maths, named if–then obstacles |
 | `shared/frameworks.ts` | Seven canvases; every plan linted to a first action |
 | `shared/actionFrame.ts` | Thought → next action; lint; Notion block shape |
-| `shared/resurface.ts` | Daily inbox / today / stale; cap 15 |
+| `shared/resurface.ts` | Daily inbox / today / stale; cap 15. Uncontained tasks stay inbox even with a date. |
+| `shared/inboxAudit.ts` | Weekly uncontained audit: assign / remove / recalibrate (token overlap) |
 | `shared/schema.ts` | Shared types for Notion-backed surfaces |
 | `server/thoughtOs.ts` | HTTP adapter: fixture or interpretation fill, then `normalizeThought` |
 | `server/frameworks.ts` | Same for Goals |
 | `server/actionFrame.ts` | Clarify inbox; write one first action to Notion |
 | `server/resurface.ts` | Compose standup from Notion or fixtures |
+| `server/inboxAudit.ts` | Load tasks/containers; GET audit; POST apply writes only on confirm |
 | `server/notion.ts` | Notion API; **no workspace IDs in source** — env only |
 | `server/intelligence.ts` | Weekly report schema fill; proof panel; note titles |
 | `server/routes.ts` | Express routes |

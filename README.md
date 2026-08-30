@@ -55,7 +55,7 @@ RESURFACE_FIXTURE=overflow PORT=5000 npm run dev
 | --- | --- | --- |
 | Think | `/#/think` | Capture → destination (landing) |
 | Goals | `/#/goals` | Frameworks; every plan ends in a verified next action |
-| Standup | `/#/standup` | Inbox / today / stale, cap 15 |
+| Standup | `/#/standup` | Inbox / today / stale, cap 15; weekly inbox audit |
 | Voice notes | `/#/` | Notion captures |
 | Projects | `/#/projects` | Health |
 | Intelligence | `/#/intelligence` | Weekly patterns |
@@ -75,7 +75,7 @@ npm test
 | **[Using the app](docs/using.md)** | Every surface, as an operator |
 | **[Destinations](docs/destinations.md)** | Five destinations, three tiers, next-action contract |
 | **[Architecture](docs/architecture.md)** | What code owns vs what a model may fill |
-| **[Setup](docs/setup.md)** | Two Railway hosts, Notion Apex Hub IDs, fixture demo |
+| **[Setup](docs/setup.md)** | Two Railway hosts, Notion Apex Hub IDs, fixture demo, inbox-audit job |
 | **[Contributing](CONTRIBUTING.md)** | Ground rules for PRs |
 | **[Security](SECURITY.md)** | How to report a vulnerability |
 
