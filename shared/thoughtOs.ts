@@ -12,6 +12,7 @@ import {
 } from "./frameworks";
 import {
   CHANGE_THE_MODEL_STEP,
+  MILLION_GOAL_CAPTURE,
   assessGoal,
   feasibilityBlocksExecute,
   parseMoneyTarget,
@@ -115,8 +116,8 @@ export const DESTINATION_COPY: Record<ThoughtDestination, string> = {
 };
 
 export const TIER_COPY: Record<DecisionTier, { label: string; who: string }> = {
-  1: { label: "Tier 1 — AI executes", who: "Low-risk, reversible actions. The system may carry them out." },
-  2: { label: "Tier 2 — AI recommends", who: "Moderate consequence. The system proposes; the human confirms." },
+  1: { label: "Tier 1 — System may execute", who: "Low-risk, reversible actions. The system may carry them out." },
+  2: { label: "Tier 2 — System recommends", who: "Moderate consequence. The system proposes; the human confirms." },
   3: { label: "Tier 3 — Human decides", who: "Financial, relational, legal, strategic, or irreversible. Judgment stays human." },
 };
 
@@ -189,10 +190,10 @@ const NO_AGENCY =
   /\b(weather|can't control|cannot control|out of my hands|nothing i can do|the market will do|other people (will|always)|fate|luck)\b/i;
 
 const DEVELOP_AGENCY =
-  /\b(we should|i should|i will|i can|i earn|change how|redesign|price|offer|send|book|write|interview|build|decide|test|million|income)\b/i;
+  /\b(we should|i should|i will|i can|i need|i earn|change how|redesign|price|offer|send|book|write|interview|build|decide|test|million|income)\b|\$\s*[\d,.]+/i;
 
 const TIER_3 =
-  /\b(pric(?:e|ing)|fire|legal|contract|hire|spend|\$|revenue|million|income|irreversible|resign|relationship|strategy|architecture|equity|litigation)\b/i;
+  /\b(pric(?:e|ing)|fire|legal|contract|hire|spend|revenue|million|income|irreversible|resign|relationship|strategy|architecture|equity|litigation)\b|\$\s*[\d,.]+/i;
 
 const TIER_1 =
   /\b(send|record|file|log|schedule|remind|draft a message|invite|book a time)\b/i;
@@ -421,7 +422,8 @@ export function normalizeThought(
   if (
     feasibilityBlocksExecute(coach) &&
     !meaningsOpen &&
-    (gate.destination === "EXECUTE" || gate.destination === "EXPLORE")
+    gate.destination !== "DELETE" &&
+    gate.destination !== "STORE"
   ) {
     gate = {
       destination: "DECIDE",
@@ -529,8 +531,8 @@ export const SAMPLE_THOUGHTS: { label: string; text: string }[] = [
     text: "I want to book five discovery calls this month but I overthink the wording of outreach and postpone sending it.",
   },
   {
-    label: "$1M income",
-    text: "I earn 1 million dollars",
+    label: "$1M this year",
+    text: MILLION_GOAL_CAPTURE,
   },
 ];
 
@@ -606,13 +608,13 @@ export function fixtureThought(
     );
   }
 
-  if (parseMoneyTarget(t) && /million|i earn|income/i.test(t)) {
+  if (parseMoneyTarget(t)) {
     return normalizeThought(
       {
         original: t,
         interpretation: {
           parts: [
-            { kind: "idea", text: "A large income target stated as an achieved result." },
+            { kind: "idea", text: "A large income target on the current practice." },
             { kind: "assumption", text: "Hours-based delivery can scale to that number." },
             { kind: "decision", text: "If the maths fail, the model has to change — price, hours, productisation, or capacity." },
           ],
@@ -763,9 +765,9 @@ export function fixtureThought(
 }
 
 export function buildThoughtPrompt(content: string, confirmedMeaningId: string | null, todayStr: string): string {
-  return `You operate a thought operating system. You do not tell the user what to think.
-You determine what should happen next to what they are thinking.
-You govern process: structure, sequencing, challenge, framework selection, follow-through.
+  return `Fill a thought-operating-system record. Do not tell the human what to think.
+Determine what should happen next to the captured thought.
+Govern process: structure, sequencing, challenge, framework selection, follow-through.
 The human retains values, judgment, accountability, and irreversible decisions.
 
 SEQUENCE: Capture → Interpret → Agency → Substance → Meaning → Stress-test → Decision gate → Container → Execution → Learning
@@ -774,13 +776,13 @@ Preserve the original wording. Do not prettify it.
 
 Separate what is being expressed into kinds: observation, assumption, emotion, hypothesis, idea, question, concern, decision, action, belief.
 
-Agency: can the user influence this? If no: contain / accept / archive / discard. If yes: develop.
+Agency: can the operator influence this? If no: contain / accept / archive / discard. If yes: develop.
 
 Substance verdict: develop | defer | delete | reconstruct.
 If the thought is weak as expressed but may hide a better idea, use reconstruct and offer exactly 3 plausible meanings (A, B, C) with different interventions.
 
 Destinations: DELETE, STORE, EXPLORE, DECIDE, EXECUTE.
-Tier 1 AI may execute reversible mechanics. Tier 2 recommend. Tier 3 human decides (money, legal, relational, strategy, irreversible). Never EXECUTE a Tier 3 thought.
+Tier 1: the system may carry out reversible mechanics. Tier 2: recommend. Tier 3: the human decides (money, legal, relational, strategy, irreversible). Never EXECUTE a Tier 3 thought.
 
 Today is ${todayStr}.
 Confirmed meaning id (if any): ${confirmedMeaningId || "none"}

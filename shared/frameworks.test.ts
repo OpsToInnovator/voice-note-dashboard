@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lintActionName } from "./actionFrame.ts";
-import { CHANGE_THE_MODEL_STEP } from "./goalCoach.ts";
+import { CHANGE_THE_MODEL_STEP, MILLION_GOAL_CAPTURE } from "./goalCoach.ts";
 import {
   FRAMEWORKS,
   DEFAULT_BIG_GOAL_FRAMEWORK,
@@ -59,8 +59,8 @@ describe("recommendFramework", () => {
     assert.equal(rec.id, "action_frame");
   });
 
-  it("routes a $1M income target to a 12-week sprint, not a single action", () => {
-    const rec = recommendFramework("I earn 1 million dollars");
+  it("routes a $1M practice target to a 12-week sprint, not a single action", () => {
+    const rec = recommendFramework(MILLION_GOAL_CAPTURE);
     assert.equal(rec.id, "twelve_week_sprint");
   });
 
@@ -110,7 +110,7 @@ describe("plan contract", () => {
   it("overrides volume with a change-the-model action when goal maths stop", () => {
     const plan = applyCoachToPlan(
       fixturePlan("twelve_week_sprint", "2026-08-29"),
-      "I earn 1 million dollars",
+      MILLION_GOAL_CAPTURE,
       "2026-08-29",
     );
     assert.equal(plan.coach?.feasibility?.verdict?.level, "stop");

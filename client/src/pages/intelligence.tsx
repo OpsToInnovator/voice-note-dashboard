@@ -573,7 +573,7 @@ export default function Intelligence() {
             </div>
             <h2 className="font-display text-lg font-semibold mb-2">Weekly Intelligence Review</h2>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6 leading-relaxed">
-              Run this once a week to get a full analysis of your goals, projects, patterns, and system health. Uses your OpenAI API.
+              Run this once a week to see patterns across goals, projects, and system health. Canvas text may be filled from a model; destinations and next-action lint stay in code.
             </p>
             <button
               onClick={() => refetch()}

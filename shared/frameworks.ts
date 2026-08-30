@@ -2,8 +2,7 @@
 // another person could verify. Planning without that leaf is avoidance.
 //
 // Code owns routing, field shape, and lint.
-// AI fills the chosen canvas.
-// The action frame is the shared leaf of every stack.
+// A model may fill canvas prose. The action frame is the shared leaf of every stack.
 
 import {
   lintActionName,
@@ -13,6 +12,7 @@ import {
 } from "./actionFrame";
 import {
   CHANGE_THE_MODEL_STEP,
+  MILLION_GOAL_CAPTURE,
   assessGoal,
   feasibilityBlocksExecute,
   obstacleToIfThen,
@@ -441,7 +441,7 @@ export function buildFrameworkPrompt(
   const meta = FRAMEWORK_BY_ID[frameworkId];
   const fieldLines = meta.fields.map((f) => `- ${f.key}: ${f.label} — ${f.hint}`).join("\n");
 
-  return `You turn a goal or thought into a compact plan. Planning is not a substitute for the first action.
+  return `Turn a goal or thought into a compact plan. Planning is not a substitute for the first action.
 
 STACK: Vision → Goal → Milestone → Project → Next action → Calendar block
 FRAMEWORK: ${meta.name}
@@ -545,9 +545,9 @@ export const SAMPLE_GOALS: { label: string; frameworkId: FrameworkId; text: stri
     text: "I should improve my consulting offer.",
   },
   {
-    label: "$1M income",
+    label: "$1M this year",
     frameworkId: "twelve_week_sprint",
-    text: "I earn 1 million dollars",
+    text: MILLION_GOAL_CAPTURE,
   },
 ];
 

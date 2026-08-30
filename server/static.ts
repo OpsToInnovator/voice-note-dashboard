@@ -10,10 +10,22 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  const indexPath = path.resolve(distPath, "index.html");
+  const indexHtml = fs.readFileSync(indexPath, "utf8");
+
+  function withPublicOrigin(html: string): string {
+    const origin = (process.env.PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
+    if (!origin || !/^https?:\/\//i.test(origin)) return html;
+    return html.replace(
+      /<meta property="og:url" content="[^"]*"\s*\/?>/,
+      `<meta property="og:url" content="${origin}/" />`,
+    );
+  }
+
+  app.use(express.static(distPath, { index: false }));
 
   // fall through to index.html if the file doesn't exist
   app.use("/{*path}", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.type("html").send(withPublicOrigin(indexHtml));
   });
 }

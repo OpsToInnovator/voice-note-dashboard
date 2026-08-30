@@ -1,8 +1,8 @@
 # Contributing
 
-Thank you for helping expand **Noticing Lens**, the open thought operating system from [ApexForm Life](https://apexformlife.com). You are contributing to the public engine. Hosted products (AFOS™, Paradigm) and services stay ApexForm Life’s.
+Thank you for helping expand **Noticing Lens**, the open thought operating system from [ApexForm Life](https://apexformlife.com). You are contributing to the public **app** (UI, gates, fixtures). Hosted products (AFOS™, Paradigm) and services stay ApexForm Life’s.
 
-The product decides what happens to a thought once it appears. It is not a notes app, task manager, journal, or chatbot.
+The product decides what happens to a thought once it appears. It is not a notes app, task manager, or journal.
 
 Trust line: *govern the process by which I decide — not decide for me.*
 
@@ -15,16 +15,18 @@ Trust line: *govern the process by which I decide — not decide for me.*
 - Prefer a lint, router, or test in `shared/` over a prompt tweak when the rule is structural.
 - Do not dump whole canvases into Notion. One first action. Human confirms reconstructed meanings (A/B/C).
 
-## How to run without anyone’s cloud
+Read **[docs/using.md](docs/using.md)** for the full walkthrough. Architecture: **[docs/architecture.md](docs/architecture.md)**. Setup: **[docs/setup.md](docs/setup.md)**. Destinations: **[docs/destinations.md](docs/destinations.md)**.
+
+## Run it
 
 ```bash
 npm install
 RESURFACE_FIXTURE=overflow PORT=5000 npm run dev
 ```
 
-Open http://127.0.0.1:5000/#/think
+An empty URL lands on Think (`/#/think`).
 
-Fixture mode does not need Notion or OpenAI. Use it for UI and engine work.
+Fixture mode does not need Notion or a model key. Use it for UI and gate work.
 
 ```bash
 npm test
@@ -40,7 +42,7 @@ npm test
 | `shared/actionFrame.ts` | Thought → next action |
 | `shared/resurface.ts` | Daily inbox / today / stale, cap 15 |
 | `client/src` | React UI (hash routes) |
-| `server` | Express, Notion, OpenAI adapters |
+| `server` | Express, Notion, and optional interpretation adapters |
 
 ## Pull requests
 

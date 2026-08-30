@@ -11,7 +11,7 @@ The [Apache License 2.0](LICENSE) covers the **source code**. It does not transf
 | What | Where |
 | --- | --- |
 | Company and commercial products | [apexformlife.com](https://apexformlife.com) |
-| This open engine (canonical source) | this GitHub repository |
+| This open app (canonical source) | this GitHub repository |
 
 Hosted / sold products live on the company site, not in this repo:
 
@@ -28,7 +28,7 @@ Hosted / sold products live on the company site, not in this repo:
 - The rising-line / jagged-N mark and wordmark
 - The ApexForm Life colour field (Ink Navy, Brand Violet, signature gradient)
 
-**Open engine (this repository)**
+**Open app (this repository)**
 
 - Noticing Lens
 
@@ -78,6 +78,6 @@ Personal, research, classroom, and internal use does **not** need a visual rebra
 
 ## Why this is written this way
 
-ApexForm Life open-sourced the engine so the decision process can be inspected and extended. Credibility for that process — and sales of AFOS™, Paradigm, and services — depends on the house name travelling with the work. A fork that strips every mention of ApexForm Life is a lost impression. A clone that *is* ApexForm Life in the buyer’s mind is fraud.
+ApexForm Life open-sourced the full Noticing Lens app so the decision process can be run, inspected, and extended. Credibility for that process — and sales of AFOS™, Paradigm, and services — depends on the house name travelling with the work. A fork that strips every mention of ApexForm Life is a lost impression. A clone that *is* ApexForm Life, AFOS™, or Paradigm in the buyer’s mind is fraud.
 
 Credit widely. Impersonate never.

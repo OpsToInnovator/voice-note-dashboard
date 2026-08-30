@@ -16,7 +16,7 @@ Include:
 
 ## Scope
 
-In scope: the Express server, Notion/OpenAI adapters, auth-adjacent env handling,
+In scope: the Express server, Notion adapters, interpretation-model keys,
 and anything that could leak `NOTION_API_KEY` or `OPENAI_API_KEY`.
 
 Out of scope: social engineering, denial of service against third-party APIs,
