@@ -155,6 +155,14 @@ export interface ProofPanel {
 }
 
 export type { DailyResurface, ResurfaceItem } from "./resurface";
+export type {
+  InboxAuditApplyRequest,
+  InboxAuditApplyResult,
+  InboxAuditItem,
+  InboxContainer,
+  InboxVerdict,
+  WeeklyInboxAudit,
+} from "./inboxAudit";
 export type { ActionCard, ClarifyResult } from "./actionFrame";
 export type {
   ApplyFrameworkResult,

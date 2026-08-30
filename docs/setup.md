@@ -50,9 +50,9 @@ Copy [`.env.example`](../.env.example) to `.env`. Never commit `.env`.
 | `PUBLIC_APP_URL` | Optional. Public origin of this host (OG tags). Lockup still goes to apexformlife.com |
 | `NOTION_API_KEY` | Live workspace |
 | `NOTION_NOTES_DB_ID` | Live notes / voice notes |
-| `NOTION_TASKS_DB_ID` | Live tasks / standup / clarify |
+| `NOTION_TASKS_DB_ID` | Live tasks / standup / clarify / weekly inbox audit |
 | `NOTION_PROJECTS_DB_ID` | Live projects |
-| `NOTION_GOALS_DB_ID` | Optional; Intelligence skips goals if unset |
+| `NOTION_GOALS_DB_ID` | Optional; Intelligence and inbox audit skip goals if unset |
 | `OPENAI_API_KEY` | Optional; Think/Goals/Intelligence canvas fill when fixture is unset |
 | View / data-source IDs | Optional CLI paths — see `.env.example` |
 
@@ -90,5 +90,7 @@ NODE_ENV=production node dist/index.cjs
 Public demo: fixture only (see above). A Notion-connected operator deploy is a different service.
 
 Daily resurface (example 07:00 Australia/Perth): `npm run resurface` in development, `npm run resurface:prod` after build. Not used on the fixture demo.
+
+Weekly inbox audit (example Sunday 07:00 Australia/Perth = Saturday 23:00 UTC, `0 23 * * 6`): `npm run inbox-audit` in development, `npm run inbox-audit:prod` after build. The job only prints the list. Assign / remove / recalibrate write to Notion only after an explicit confirm on Standup or `POST /api/inbox-audit/apply`. Remove archives the page; it does not hard-delete. Put your own Tasks / Projects / Goals database IDs in `.env` — none are stored in this repo.
 
 Community hosts: keep the ApexForm Life credit and a link to [apexformlife.com](https://apexformlife.com). Do not present a self-host as AFOS™ or Paradigm. [TRADEMARKS.md](../TRADEMARKS.md).

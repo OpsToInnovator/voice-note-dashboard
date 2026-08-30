@@ -25,6 +25,8 @@ export interface RawCapture {
   priority: string;
   type: string;
   hasProject: boolean;
+  hasGoal: boolean;
+  hasReason: boolean;
   hasTag: boolean;
   hasPerson: boolean;
   archived: boolean;
@@ -121,6 +123,10 @@ function isFiledAway(item: RawCapture): boolean {
   return item.hasProject || item.hasTag || item.hasPerson;
 }
 
+export function isContainedTask(item: RawCapture): boolean {
+  return item.hasProject || item.hasGoal || item.hasReason;
+}
+
 export function classifyCapture(item: RawCapture, todayStr: string): BucketKind {
   if (item.archived) return "skip";
   if (!item.name.trim()) return "skip";
@@ -133,10 +139,12 @@ export function classifyCapture(item: RawCapture, todayStr: string): BucketKind 
 
   if (isDone(item.status)) return "skip";
 
+  // Uncontained = inbox even when a date is set. A date is not a home.
+  if (!isContainedTask(item)) return "inbox";
+
   const dueDay = calendarDate(item.due || "");
   if (isDoing(item.status) || dueDay === todayStr) return "today";
   if (dueDay && dueDay < todayStr) return "stale";
-  if (!item.hasProject && !dueDay) return "inbox";
 
   const lastTouch = item.lastEdited || item.created;
   if (!dueDay && ageDays(lastTouch, todayStr) >= UNDATED_STALE_AFTER_DAYS) return "stale";
@@ -147,8 +155,12 @@ export function classifyCapture(item: RawCapture, todayStr: string): BucketKind 
 function itemReason(item: RawCapture, bucket: Exclude<BucketKind, "skip">, todayStr: string): string {
   if (bucket === "inbox") {
     const age = ageDays(item.created || item.lastEdited, todayStr);
-    if (age >= INBOX_STALE_AFTER_DAYS) return `Unprocessed for ${age}d`;
-    return item.source === "note" ? "Unprocessed capture" : "No project, no date";
+    if (item.source === "note") {
+      if (age >= INBOX_STALE_AFTER_DAYS) return `Unprocessed for ${age}d`;
+      return "Unprocessed capture";
+    }
+    if (age >= INBOX_STALE_AFTER_DAYS) return `Uncontained for ${age}d`;
+    return item.due ? "Uncontained (dated, no home)" : "No project, goal, or reason";
   }
   if (bucket === "today") {
     if (isDoing(item.status)) return "In progress";
@@ -353,6 +365,8 @@ export function buildFixtureCaptures(kind: "overflow" | "healthy"): RawCapture[]
     priority: "",
     type: "",
     hasProject: false,
+    hasGoal: false,
+    hasReason: false,
     hasTag: false,
     hasPerson: false,
     archived: false,
@@ -376,6 +390,8 @@ export function buildFixtureCaptures(kind: "overflow" | "healthy"): RawCapture[]
     priority: "",
     type: "Process",
     hasProject: true,
+    hasGoal: false,
+    hasReason: false,
     hasTag: false,
     hasPerson: false,
     archived: false,

@@ -66,6 +66,13 @@ async function buildAll() {
     outfile: "dist/resurface.cjs",
     ...sharedServerBuild,
   });
+
+  console.log("building inbox audit job...");
+  await esbuild({
+    entryPoints: ["server/inboxAuditJob.ts"],
+    outfile: "dist/inbox-audit.cjs",
+    ...sharedServerBuild,
+  });
 }
 
 buildAll().catch((err) => {

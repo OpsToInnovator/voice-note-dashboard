@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { listVoiceNotes, getVoiceNoteDetail, getTasksForVoiceNote, listProjects, getDailyStandup, gatherIntelligenceContext, classifyUnclassifiedTasks } from "./notion";
 import { generateIntelligence, autoTitleNotes, processVoiceNotes, getUnprocessedVoiceNoteCount, generateProofPanel } from "./intelligence";
 import { getDailyResurface, runResurfaceJob } from "./resurface";
+import { applyInboxAudit, getWeeklyInboxAudit, runInboxAuditJob } from "./inboxAudit";
 import { clarifyInbox } from "./actionFrame";
 import { applyFramework } from "./frameworks";
 import { processThought, thoughtCatalog } from "./thoughtOs";
@@ -119,6 +120,39 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Error running resurface job:", err);
       res.status(500).json({ error: "Failed to run resurface job", message: err.message });
+    }
+  });
+
+  // Weekly inbox audit: uncontained tasks vs existing projects / goals / reasons
+  app.get("/api/inbox-audit", async (_req, res) => {
+    try {
+      const report = await getWeeklyInboxAudit();
+      res.json(report);
+    } catch (err: any) {
+      console.error("Error building weekly inbox audit:", err);
+      res.status(500).json({ error: "Failed to build weekly inbox audit", message: err.message });
+    }
+  });
+
+  app.post("/api/inbox-audit/run", async (_req, res) => {
+    try {
+      const report = await runInboxAuditJob();
+      res.json(report);
+    } catch (err: any) {
+      console.error("Error running inbox audit job:", err);
+      res.status(500).json({ error: "Failed to run inbox audit job", message: err.message });
+    }
+  });
+
+  // Writes only on explicit confirm. Archive on remove — never hard-delete.
+  app.post("/api/inbox-audit/apply", async (req, res) => {
+    try {
+      const result = await applyInboxAudit(req.body);
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error applying inbox audit:", err);
+      const status = err.status === 400 || err.status === 404 ? err.status : 500;
+      res.status(status).json({ error: "Failed to apply inbox audit", message: err.message });
     }
   });
 

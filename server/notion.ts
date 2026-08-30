@@ -1918,3 +1918,169 @@ export async function getRecentlyCompletedTasks(): Promise<{ name: string; type:
 
   return results;
 }
+
+function hasApiKey(): boolean {
+  return !!(process.env.NOTION_API_KEY || process.env.NOTION_TOKEN);
+}
+
+export async function getGoalLookup(): Promise<Map<string, { id: string; url: string }>> {
+  const lookup = new Map<string, { id: string; url: string }>();
+  const goalsDbId = getGoalsDbId();
+  if (!goalsDbId) return lookup;
+
+  if (hasApiKey()) {
+    try {
+      let pages: any[];
+      try {
+        pages = await queryDatabasePages(goalsDbId, {
+          filter: { property: "Archived", checkbox: { equals: false } },
+        });
+      } catch {
+        pages = await queryDatabasePages(goalsDbId, {});
+      }
+      for (const page of pages) {
+        const name = getTitle(page.properties || {}, "Name");
+        const id = String(page.id || "").replace(/-/g, "");
+        if (name) lookup.set(name, { id, url: page.url || "" });
+      }
+    } catch (err) {
+      console.error("Failed to fetch goals for lookup:", err);
+    }
+    return lookup;
+  }
+
+  try {
+    const result = callNotionCli("notion-query-database-view", {
+      view_url: databaseUrl(goalsDbId, getGoalsViewId()),
+    });
+    for (const goal of result.results || []) {
+      const name = goal.Name || "";
+      const url = goal.url || "";
+      const id = extractIdFromUrl(url);
+      if (name) lookup.set(name, { id, url });
+    }
+  } catch (err) {
+    console.error("Failed to fetch goals for lookup via CLI:", err);
+  }
+  return lookup;
+}
+
+export async function fetchDatabaseSchema(dbId: string): Promise<any | null> {
+  if (!hasApiKey()) return null;
+  try {
+    return await notionFetch(`/databases/${formatUuid(dbId)}`);
+  } catch (err) {
+    console.error("Failed to fetch database schema:", err);
+    return null;
+  }
+}
+
+export function relationOrSelectOptions(
+  schema: any,
+  names: string[],
+): { property: string; type: "relation" | "select" | "multi_select"; options: { id: string; name: string }[] }[] {
+  const found: {
+    property: string;
+    type: "relation" | "select" | "multi_select";
+    options: { id: string; name: string }[];
+  }[] = [];
+  if (!schema?.properties) return found;
+  for (const name of names) {
+    const prop = schema.properties[name];
+    if (!prop) continue;
+    if (prop.type === "relation") {
+      found.push({ property: name, type: "relation", options: [] });
+    } else if (prop.type === "select" || prop.type === "multi_select") {
+      const options = (prop[prop.type]?.options || []).map((opt: any) => ({
+        id: String(opt.id || opt.name),
+        name: String(opt.name || ""),
+      }));
+      found.push({ property: name, type: prop.type, options });
+    }
+  }
+  return found;
+}
+
+export async function archiveNotionPage(pageId: string): Promise<void> {
+  if (hasApiKey()) {
+    await notionFetch(`/pages/${formatUuid(pageId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ archived: true }),
+    });
+    return;
+  }
+  callNotionCli("notion-update-page", {
+    page_id: pageId,
+    command: "update_properties",
+    properties: { Archived: true },
+  });
+}
+
+export async function assignTaskRelation(
+  taskId: string,
+  property: string,
+  targetId: string,
+): Promise<void> {
+  if (hasApiKey()) {
+    await notionFetch(`/pages/${formatUuid(taskId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        properties: {
+          [property]: { relation: [{ id: formatUuid(targetId) }] },
+        },
+      }),
+    });
+    return;
+  }
+  callNotionCli("notion-update-page", {
+    page_id: taskId,
+    command: "update_properties",
+    properties: {
+      [property]: JSON.stringify([`https://www.notion.so/${targetId}`]),
+    },
+  });
+}
+
+export async function assignTaskSelect(taskId: string, property: string, name: string): Promise<void> {
+  if (hasApiKey()) {
+    await notionFetch(`/pages/${formatUuid(taskId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        properties: {
+          [property]: { select: { name } },
+        },
+      }),
+    });
+    return;
+  }
+  callNotionCli("notion-update-page", {
+    page_id: taskId,
+    command: "update_properties",
+    properties: { [property]: name },
+  });
+}
+
+export async function createNamedPage(
+  dbId: string,
+  name: string,
+): Promise<{ id: string; url: string }> {
+  if (hasApiKey()) {
+    const page = await notionFetch(`/pages`, {
+      method: "POST",
+      body: JSON.stringify({
+        parent: { database_id: formatUuid(dbId) },
+        properties: {
+          Name: { title: [{ text: { content: name.slice(0, 200) } }] },
+        },
+      }),
+    });
+    return { id: String(page.id || "").replace(/-/g, ""), url: page.url || "" };
+  }
+  const result = callNotionCli("notion-create-pages", {
+    parent: { database_id: dbId },
+    pages: [{ properties: { Name: name } }],
+  });
+  const created = result?.pages?.[0] || result?.results?.[0] || result;
+  const url = created?.url || "";
+  return { id: extractIdFromUrl(url || created?.id || ""), url };
+}

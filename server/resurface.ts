@@ -37,6 +37,11 @@ function hasAnyRelation(props: any, names: string[]): boolean {
   return names.some((name) => getRelationIds(props, name).length > 0);
 }
 
+function hasReasonProps(props: any): boolean {
+  if (hasAnyRelation(props, ["Reason", "Why", "Area"])) return true;
+  return Boolean(getSelect(props, "Reason") || getSelect(props, "Why") || getSelect(props, "Area"));
+}
+
 function mapNotePage(page: any): RawCapture {
   const props = page.properties || {};
   return {
@@ -51,6 +56,8 @@ function mapNotePage(page: any): RawCapture {
     priority: "",
     type: "",
     hasProject: hasAnyRelation(props, ["Project", "Projects"]),
+    hasGoal: hasAnyRelation(props, ["Goal", "Goals"]),
+    hasReason: hasReasonProps(props),
     hasTag: hasAnyRelation(props, ["Tag", "Tags"]),
     hasPerson: hasAnyRelation(props, ["Person", "People", "Related to Person (People)"]),
     archived: getCheckbox(props, "Archived"),
@@ -72,6 +79,8 @@ function mapTaskPage(page: any): RawCapture {
     priority: getStatus(props, "Priority") || getSelect(props, "Priority"),
     type: getSelect(props, "P/I"),
     hasProject: hasAnyRelation(props, ["Project", "Projects"]),
+    hasGoal: hasAnyRelation(props, ["Goal", "Goals"]),
+    hasReason: hasReasonProps(props),
     hasTag: hasAnyRelation(props, ["Tag", "Tags"]),
     hasPerson: hasAnyRelation(props, ["Person", "People"]),
     archived: getCheckbox(props, "Archived"),
@@ -134,6 +143,10 @@ function fetchNotesCli(): RawCapture[] {
         priority: "",
         type: "",
         hasProject: parseRelationUrls(n.Project || n.Projects || "").length > 0,
+        hasGoal: parseRelationUrls(n.Goal || n.Goals || "").length > 0,
+        hasReason:
+          parseRelationUrls(n.Reason || n.Why || n.Area || "").length > 0 ||
+          Boolean(n.Reason && n.Reason !== "<omitted />" && !String(n.Reason).startsWith("[")),
         hasTag: parseRelationUrls(n.Tag || n.Tags || "").length > 0,
         hasPerson: parseRelationUrls(n.Person || n.People || "").length > 0,
         archived: String(n.Archived || "").toLowerCase() === "true",
@@ -165,6 +178,14 @@ function fetchTasksCli(): RawCapture[] {
         priority: t.Priority || "",
         type: t["P/I"] || "",
         hasProject: parseRelationUrls(t.Project || t.Projects || "").length > 0,
+        hasGoal: parseRelationUrls(t.Goal || t.Goals || "").length > 0,
+        hasReason:
+          parseRelationUrls(t.Reason || t.Why || t.Area || "").length > 0 ||
+          Boolean(
+            (t.Reason || t.Why || t.Area) &&
+              String(t.Reason || t.Why || t.Area) !== "<omitted />" &&
+              !String(t.Reason || t.Why || t.Area).startsWith("["),
+          ),
         hasTag: parseRelationUrls(t.Tag || "").length > 0,
         hasPerson: parseRelationUrls(t.Person || t.People || "").length > 0,
         archived: false,

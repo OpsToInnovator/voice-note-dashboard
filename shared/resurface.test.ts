@@ -24,6 +24,8 @@ function capture(partial: Partial<RawCapture> & Pick<RawCapture, "id" | "name" |
     priority: "",
     type: "",
     hasProject: false,
+    hasGoal: false,
+    hasReason: false,
     hasTag: false,
     hasPerson: false,
     archived: false,
@@ -86,6 +88,53 @@ describe("classifyCapture", () => {
     assert.equal(
       classifyCapture(capture({ id: "t4", name: "Loose", source: "task", status: "To Do" }), TODAY),
       "inbox",
+    );
+  });
+
+  it("keeps uncontained tasks in inbox even when they have a date", () => {
+    assert.equal(
+      classifyCapture(
+        capture({ id: "t4b", name: "Dated loose", source: "task", due: TODAY, status: "To Do" }),
+        TODAY,
+      ),
+      "inbox",
+    );
+    assert.equal(
+      classifyCapture(
+        capture({ id: "t4c", name: "Overdue loose", source: "task", due: "2026-08-20" }),
+        TODAY,
+      ),
+      "inbox",
+    );
+    assert.equal(
+      classifyCapture(
+        capture({ id: "t4d", name: "Future loose", source: "task", due: "2026-10-01" }),
+        TODAY,
+      ),
+      "inbox",
+    );
+  });
+
+  it("treats a goal or reason as a home, so overdue contained work can still be stale", () => {
+    assert.equal(
+      classifyCapture(
+        capture({ id: "t4e", name: "Goal work", source: "task", due: TODAY, hasGoal: true }),
+        TODAY,
+      ),
+      "today",
+    );
+    assert.equal(
+      classifyCapture(
+        capture({
+          id: "t4f",
+          name: "Reason work",
+          source: "task",
+          due: "2026-08-20",
+          hasReason: true,
+        }),
+        TODAY,
+      ),
+      "stale",
     );
   });
 
